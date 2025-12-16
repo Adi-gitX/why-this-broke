@@ -26,6 +26,7 @@ export interface SystemState {
         branch: string;
         isDirty: boolean; // Simple check if tree has modifications
     };
+    configurations: Record<string, string>; // filename -> hash
 }
 
 export interface DiffResult {

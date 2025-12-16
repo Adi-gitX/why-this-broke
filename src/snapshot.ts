@@ -43,6 +43,33 @@ const getNpmVersion = (): string | undefined => {
     } catch { return undefined; }
 };
 
+const getConfigHashes = (): Record<string, string> => {
+    const criticalFiles = [
+        'tsconfig.json',
+        'jsconfig.json',
+        'webpack.config.js',
+        'vite.config.js',
+        'babel.config.js',
+        '.eslintrc',
+        '.eslintrc.json',
+        '.prettierrc',
+        'Dockerfile',
+        'docker-compose.yml',
+        'next.config.js',
+        'tailwind.config.js'
+    ];
+
+    const hashes: Record<string, string> = {};
+    for (const file of criticalFiles) {
+        if (fs.existsSync(file)) {
+            try {
+                hashes[file] = crypto.createHash('sha256').update(fs.readFileSync(file)).digest('hex');
+            } catch (e) { }
+        }
+    }
+    return hashes;
+};
+
 export const captureState = (): SystemState => {
     let pkg: any = {};
     try {
@@ -75,7 +102,8 @@ export const captureState = (): SystemState => {
                 })
                 .sort()
         },
-        git: getGitInfo()
+        git: getGitInfo(),
+        configurations: getConfigHashes()
     };
 };
 

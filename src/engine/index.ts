@@ -3,6 +3,7 @@ import { RuntimeDetector } from './detectors/RuntimeDetector';
 import { EnvDetector } from './detectors/EnvDetector';
 import { DependencyDetector } from './detectors/DependencyDetector';
 import { GitDetector } from './detectors/GitDetector';
+import { ConfigDetector } from './detectors/ConfigDetector';
 
 export class InferenceEngine {
     private detectors: Detector[];
@@ -13,7 +14,8 @@ export class InferenceEngine {
             new RuntimeDetector(),
             new EnvDetector(),
             new DependencyDetector(),
-            new GitDetector()
+            new GitDetector(),
+            new ConfigDetector()
         ];
     }
 
