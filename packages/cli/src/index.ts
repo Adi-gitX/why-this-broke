@@ -1,73 +1,27 @@
 #!/usr/bin/env node
+import { saveSnapshot } from './snapshot';
+import { analyzeFailure } from './analyze';
+import chalk from 'chalk';
 
-import { program } from 'commander';
-import { SnapshotRecorder } from '@causal/recorder';
-import { Analyzer } from '@causal/analyzer';
-import { CausalGraph } from '@causal/reasoner';
-import { execSync } from 'child_process';
+const args = process.argv.slice(2);
+const command = args[0];
 
-program
-    .name('causal')
-    .description('Causal Debugger - Project Lazarus')
-    .version('1.0.0');
+if (command === 'record') {
+    saveSnapshot();
+    console.log(chalk.green('✔ Success state recorded.'));
+} else if (command === 'check') {
+    console.log(chalk.blue('Running causal analysis...'));
+    const issues = analyzeFailure();
 
-program
-    .command('record')
-    .description('Record a successful state')
-    .action(() => {
-        console.log('Recording state...');
-        const recorder = new SnapshotRecorder();
-        const snapshot = recorder.capture();
-        console.log(`Snapshot captured: ${snapshot.id}`);
-        // In real impl, save to DB
-    });
-
-program
-    .command('debug [refA] [refB]')
-    .description('Diagnose a failure between two points (default: HEAD~1 vs HEAD)')
-    .action(async (refA = 'HEAD~1', refB = 'HEAD') => {
-        console.log(`🔍 Analyzing changes between ${refA} and ${refB}...`);
-
-        // 1. Analyze
-        const analyzer = new Analyzer(process.cwd());
-
-        let lockAContent = '{}';
-        let lockBContent = '{}';
-
-        try {
-            lockAContent = execSync(`git show ${refA}:package-lock.json`, { encoding: 'utf-8' });
-        } catch (e) { }
-
-        try {
-            lockBContent = execSync(`git show ${refB}:package-lock.json`, { encoding: 'utf-8' });
-        } catch (e) { }
-
-        const fileChanges = await analyzer.analyzeFiles(refA, refB);
-        const depChanges = await analyzer.analyzeDeps(JSON.parse(lockAContent), JSON.parse(lockBContent));
-
-        // 2. Reason
-        const graph = new CausalGraph();
-        graph.ingest({
-            fileChanges,
-            depChanges,
-            // envChanges...
+    if (issues.length === 0) {
+        console.log(chalk.green('No environment or dependency drift detected. This is likely a logic error in your code.'));
+    } else {
+        issues.forEach(issue => {
+            const color = issue.type === 'CRITICAL' ? chalk.red : chalk.yellow;
+            console.log(color.bold(`[${issue.category}] ${issue.message}`));
+            console.log(chalk.gray(`  └─ Fix: ${issue.remedy}`));
         });
-
-        const diagnosis = graph.diagnose();
-
-        // 3. Explain
-        console.log('\n---------------------------------------------------');
-        console.log(diagnosis.summary);
-        if (diagnosis.causes.length > 0) {
-            console.log('\nTop Probable Causes:');
-            diagnosis.causes.forEach((c, i) => {
-                console.log(`${i + 1}. [${Math.round(c.confidence * 100)}%] ${c.description}`);
-            });
-        } else {
-            console.log('\n(No high-confidence causes found. Showing all changes...)');
-            console.log('Files changed:', fileChanges.length);
-            console.log('Deps changed:', depChanges.length);
-        }
-    });
-
-program.parse();
+    }
+} else {
+    console.log('Usage: why-broke [record|check]');
+}
