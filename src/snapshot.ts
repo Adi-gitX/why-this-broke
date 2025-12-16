@@ -67,7 +67,12 @@ export const captureState = (): SystemState => {
         lockfile: getLockfileInfo(),
         environment: {
             keys: Object.keys(process.env)
-                .filter(k => !k.startsWith('npm_') && k !== '_') // Filter volatile
+                .filter(k => {
+                    if (k.startsWith('npm_')) return false;
+                    if (k === '_') return false;
+                    const noise = ['INIT_CWD', 'NODE', 'NODE_PATH', 'COLOR', 'EDITOR', 'SHLVL', 'TERM_PROGRAM', 'TERM_PROGRAM_VERSION'];
+                    return !noise.includes(k);
+                })
                 .sort()
         },
         git: getGitInfo()
