@@ -1,0 +1,20 @@
+{
+  "files": [],
+  "references": [
+    {
+      "path": "./packages/types"
+    },
+    {
+      "path": "./packages/recorder"
+    },
+    {
+      "path": "./packages/analyzer"
+    },
+    {
+      "path": "./packages/reasoner"
+    },
+    {
+      "path": "./packages/cli"
+    }
+  ]
+}

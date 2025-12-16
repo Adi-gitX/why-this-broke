@@ -1,0 +1,23 @@
+{
+    "name": "@causal/cli",
+    "version": "1.0.0",
+    "main": "dist/index.js",
+    "bin": {
+        "causal": "./dist/index.js"
+    },
+    "scripts": {
+        "build": "tsc"
+    },
+    "dependencies": {
+        "@causal/types": "*",
+        "@causal/recorder": "*",
+        "@causal/analyzer": "*",
+        "@causal/reasoner": "*",
+        "commander": "^11.0.0",
+        "chalk": "^4.0.0"
+    },
+    "devDependencies": {
+        "typescript": "^5.0.0",
+        "@types/node": "^20.0.0"
+    }
+}
