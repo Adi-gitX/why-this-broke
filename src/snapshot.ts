@@ -38,7 +38,10 @@ export const captureState = (): SystemState => {
     return {
         timestamp: Date.now(),
         nodeVersion: process.version,
-        dependencies: pkg.dependencies || {},
+        dependencies: {
+            ...(pkg.dependencies || {}),
+            ...(pkg.devDependencies || {})
+        },
         lockfileHash: getLockfileHash(),
         envKeys: Object.keys(process.env).sort(),
         gitCommit

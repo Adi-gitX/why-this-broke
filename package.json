@@ -1,6 +1,6 @@
 {
   "name": "why-broke",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "description": "Causal debugging tool that explains build failures by analyzing dependency and environment drift.",
   "main": "dist/index.js",
   "bin": {
@@ -18,7 +18,11 @@
     "build-tools",
     "diff",
     "causality",
-    "drift-detection"
+    "drift-detection",
+    "regression",
+    "ci",
+    "build-failure",
+    "root-cause"
   ],
   "author": "Aditya Kammati",
   "license": "MIT",

@@ -1,6 +1,6 @@
 # 🕵️‍♀️ why-broke
 
-**Stop guessing. Start reasoning.** A causal debugging tool that tells you *why* your build failed by comparing it to the last time it worked.
+**Stop guessing. Start reasoning.** A causal debugging tool that compares your broken build to the last time it worked.
 
 [![npm version](https://img.shields.io/npm/v/why-broke.svg)](https://www.npmjs.com/package/why-broke)
 
@@ -8,14 +8,15 @@
 
 ### The Problem
 You pull the latest code. You run `npm start`. It crashes.  
-The error says `undefined is not a function`.  
 **But it worked yesterday.**
 
 Standard tools show you the **Trace** (where it crashed).  
-`why-broke` shows you the **Cause** (what changed since it last worked).
+`why-broke` shows you the **Cause** (what changed since then).
+
+*Especially useful when CI fails but it works locally.*
 
 ### The Solution
-`why-broke` takes a snapshot of your "World A" (Working State) and compares it to "World B" (Broken State) to detect:
+`why-broke` takes a lightweight snapshot of your "World A" (Working State) and compares it to "World B" (Broken State) to detect:
 * ❌ **Dependency Drift** (Did a minor patch update break you?)
 * ❌ **Environment Gaps** (Did you forget a new `.env` variable?)
 * ❌ **Runtime Shifts** (Did your Node version silently jump?)
@@ -25,49 +26,45 @@ Standard tools show you the **Trace** (where it crashed).
 ### 🚀 Usage
 
 **The Magic Way (Recommended)**
-Simply wrap your build or start command. `why-broke` will watch it.
+Simply wrap your build command. Auto-Pilot handles the rest.
 
 ```bash
-why-broke "npm run build"
+npx why-broke "npm run build"
 ```
+*   **Success?** It automatically records the new baseline.
+*   **Failure?** It automatically detects drift and warns you.
 
-*   **If it succeeds:** It automatically `records` the new state.
-*   **If it fails:** It automatically `analyzes` and tells you why.
+**The "Set and Forget" way**
+Run `npx why-broke init` to automatically track baselines on every `npm install`.
 
 ---
 
-### Manual Usage
+### 🧐 Scope & Guarantees (v1)
 
-**1. Record Success**
-```bash
-why-broke record
-```
+**What it guarantees:**
+*   ✅ Detects drift in **Dependencies**, **Environment**, and **Node Version**.
+*   ✅ Hashes your **Lockfile** to find silent sub-dependency changes.
+*   ✅ Never guesses silently — all findings are traceable.
 
-**2. Check Failure**
-```bash
-why-broke check
-```
-
-**Output:**
-
-```text
-[Dependency Drift] axios changed version: ^0.21.1 -> ^0.22.0
-  └─ Fix: Revert axios to ^0.21.1 or check changelogs.
-
-[Environment] Missing Environment Variables: STRIPE_SECRET_KEY
-  └─ Fix: Check your .env file or export these variables.
-```
+**What it does NOT do (yet):**
+*   ❌ Full semantic code analysis (AST parsing).
+*   ❌ Automatic code fixing.
 
 ---
 
-### 🧠 How It Works
-Every bug has three layers:
+### 🧠 Confidence Model
 
-1. **Trigger:** The error message (what you see).
-2. **Cause:** The specific delta (what changed).
-3. **Reason:** Why that change mattered.
+`why-broke` doesn't just guess. It ranks findings by **Confidence**:
 
-`why-broke` focuses entirely on layer 2. It tracks the "Metadata of Success" so that when failure happens, it can diff the reality of your system, not just your code.
+*   **HIGH**: Runtime/Lockfile/Env changes. These almost always cause breakages in previously working builds.
+*   **MEDIUM**: `package.json` updates.
+*   **LOW**: Git file changes. We know *files* changed, but we verify drift first.
+
+### 🛡 Privacy & Security
+
+**How World A is captured:**
+We only store **hashes** and **fingerprints** (e.g., checksum of `package-lock.json`, list of env *keys*).
+We **never** store source code or environment values.
 
 ### License
 MIT

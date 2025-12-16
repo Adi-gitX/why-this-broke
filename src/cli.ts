@@ -33,8 +33,13 @@ const run = async () => {
         } else {
             issues.forEach(issue => {
                 const color = issue.type === 'CRITICAL' ? chalk.red : chalk.yellow;
-                console.log(color.bold(`\n[${issue.category}] ${issue.message}`));
-                console.log(chalk.gray(`  └─ Fix: ${issue.remedy}`));
+                const confidenceBadge = issue.confidence === 'HIGH' ? chalk.bgRed.white.bold(' HIGH ') :
+                    issue.confidence === 'MEDIUM' ? chalk.bgYellow.black(' MED ') :
+                        chalk.bgGray.white(' LOW ');
+
+                console.log(`\n${confidenceBadge} ` + color.bold(`[${issue.category}]`));
+                console.log(chalk.white(`       ${issue.message}`));
+                console.log(chalk.gray(`       └─ Fix: ${issue.remedy}`));
             });
             process.exit(1);
         }
