@@ -119,16 +119,16 @@ A: **No.** We only hash `package-lock.json` and check `process.env` keys. We nev
 
 ---
 
-### 🧠 Confidence Engine
+### 🧠 Causal Inference Engine (v1.2)
 
-We don't just dump a diff. We rank findings by probability.
+We don't just dump a diff. We run a **probabilistic analysis** using 4 specialized detectors:
 
-| Signal | Meaning | Confidence |
+| Detector | Checks | Confidence |
 | :--- | :--- | :--- |
-| **Runtime / Lockfile** | Your execution environment changed. | `HIGH` |
-| **Missing Dep** | A package disappeared. | `HIGH` |
-| **Package Update** | `package.json` version bump. | `MEDIUM` |
-| **Code Change** | Git files modified. | `LOW` |
+| **RuntimeDetector** | Node Version, OS, CPU Architecture. | `HIGH` |
+| **DependencyDetector** | Lockfile hash, Manifest versions, Integrity. | `HIGH` |
+| **EnvDetector** | Missing keys (ignores volatile `npm_` vars). | `HIGH` |
+| **GitDetector** | Commit history, Dirty state, Branch drift. | `LOW` |
 
 ### License
 MIT

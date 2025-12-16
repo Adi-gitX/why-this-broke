@@ -1,25 +1,46 @@
 import fs from 'fs';
 import { execSync } from 'child_process';
 import crypto from 'crypto';
+import { SystemState } from './internal/types';
 
-export interface SystemState {
-    timestamp: number;
-    nodeVersion: string;
-    dependencies: Record<string, string>;
-    lockfileHash: string;
-    envKeys: string[];
-    gitCommit: string;
-}
-
-const getLockfileHash = (): string => {
-    const files = ['package-lock.json', 'yarn.lock', 'pnpm-lock.yaml'];
-    for (const file of files) {
-        if (fs.existsSync(file)) {
-            const content = fs.readFileSync(file);
-            return crypto.createHash('sha256').update(content).digest('hex');
-        }
+const getLockfileInfo = (): { hash: string; type: SystemState['lockfile']['type'] } => {
+    if (fs.existsSync('package-lock.json')) {
+        return {
+            hash: crypto.createHash('sha256').update(fs.readFileSync('package-lock.json')).digest('hex'),
+            type: 'npm'
+        };
     }
-    return 'none';
+    if (fs.existsSync('yarn.lock')) {
+        return {
+            hash: crypto.createHash('sha256').update(fs.readFileSync('yarn.lock')).digest('hex'),
+            type: 'yarn'
+        };
+    }
+    if (fs.existsSync('pnpm-lock.yaml')) {
+        return {
+            hash: crypto.createHash('sha256').update(fs.readFileSync('pnpm-lock.yaml')).digest('hex'),
+            type: 'pnpm'
+        };
+    }
+    return { hash: 'none', type: 'none' };
+};
+
+const getGitInfo = (): SystemState['git'] => {
+    try {
+        const commit = execSync('git rev-parse HEAD', { stdio: 'pipe' }).toString().trim();
+        const branch = execSync('git rev-parse --abbrev-ref HEAD', { stdio: 'pipe' }).toString().trim();
+        // check if dirty
+        const status = execSync('git status --porcelain', { stdio: 'pipe' }).toString().trim();
+        return { commit, branch, isDirty: status.length > 0 };
+    } catch (e) {
+        return { commit: 'unknown', branch: 'unknown', isDirty: false };
+    }
+};
+
+const getNpmVersion = (): string | undefined => {
+    try {
+        return execSync('npm -v', { stdio: 'pipe' }).toString().trim();
+    } catch { return undefined; }
 };
 
 export const captureState = (): SystemState => {
@@ -30,21 +51,26 @@ export const captureState = (): SystemState => {
         }
     } catch (e) { }
 
-    let gitCommit = 'unknown';
-    try {
-        gitCommit = execSync('git rev-parse HEAD', { stdio: 'pipe' }).toString().trim();
-    } catch (e) { }
-
     return {
         timestamp: Date.now(),
-        nodeVersion: process.version,
-        dependencies: {
-            ...(pkg.dependencies || {}),
-            ...(pkg.devDependencies || {})
+        runtime: {
+            nodeVersion: process.version,
+            npmVersion: getNpmVersion(),
+            arch: process.arch,
+            platform: process.platform
         },
-        lockfileHash: getLockfileHash(),
-        envKeys: Object.keys(process.env).sort(),
-        gitCommit
+        package: {
+            dependencies: pkg.dependencies || {},
+            devDependencies: pkg.devDependencies || {},
+            scripts: pkg.scripts || {}
+        },
+        lockfile: getLockfileInfo(),
+        environment: {
+            keys: Object.keys(process.env)
+                .filter(k => !k.startsWith('npm_') && k !== '_') // Filter volatile
+                .sort()
+        },
+        git: getGitInfo()
     };
 };
 
