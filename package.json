@@ -1,16 +1,38 @@
 {
-  "name": "causal-debugger-monorepo",
-  "private": true,
-  "workspaces": [
-    "packages/*"
-  ],
+  "name": "why-broke",
+  "version": "1.0.0",
+  "description": "Causal debugging tool that explains build failures by analyzing dependency and environment drift.",
+  "main": "dist/index.js",
+  "bin": {
+    "why-broke": "dist/cli.js"
+  },
   "scripts": {
-    "build": "tsc -b",
-    "test": "echo 'Run tests in packages'",
-    "clean": "rm -rf node_modules packages/*/node_modules packages/*/dist"
+    "build": "tsc",
+    "prepublishOnly": "npm run build"
+  },
+  "keywords": [
+    "debugging",
+    "build-tools",
+    "diff",
+    "causality",
+    "drift-detection"
+  ],
+  "author": "Aditya Kammati",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Adi-gitX/why-this-broke.git"
+  },
+  "bugs": {
+    "url": "https://github.com/Adi-gitX/why-this-broke/issues"
+  },
+  "homepage": "https://github.com/Adi-gitX/why-this-broke#readme",
+  "dependencies": {
+    "chalk": "^4.1.2",
+    "ora": "^5.4.1"
   },
   "devDependencies": {
-    "typescript": "^5.0.0",
-    "@types/node": "^20.0.0"
+    "@types/node": "^20.0.0",
+    "typescript": "^5.0.0"
   }
 }

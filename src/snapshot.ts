@@ -12,10 +12,10 @@ export interface SystemState {
 export const captureState = (): SystemState => {
     let pkg: any = {};
     try {
-        pkg = JSON.parse(fs.readFileSync('package.json', 'utf-8'));
-    } catch (e) {
-        // no package.json
-    }
+        if (fs.existsSync('package.json')) {
+            pkg = JSON.parse(fs.readFileSync('package.json', 'utf-8'));
+        }
+    } catch (e) { }
 
     let gitCommit = 'unknown';
     try {

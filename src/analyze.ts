@@ -1,7 +1,7 @@
 import fs from 'fs';
 import { captureState, SystemState } from './snapshot';
 
-interface DiffResult {
+export interface DiffResult {
     type: 'CRITICAL' | 'WARNING' | 'INFO';
     category: string;
     message: string;
