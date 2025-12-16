@@ -1,13 +1,26 @@
 import fs from 'fs';
 import { execSync } from 'child_process';
+import crypto from 'crypto';
 
 export interface SystemState {
     timestamp: number;
     nodeVersion: string;
     dependencies: Record<string, string>;
+    lockfileHash: string;
     envKeys: string[];
     gitCommit: string;
 }
+
+const getLockfileHash = (): string => {
+    const files = ['package-lock.json', 'yarn.lock', 'pnpm-lock.yaml'];
+    for (const file of files) {
+        if (fs.existsSync(file)) {
+            const content = fs.readFileSync(file);
+            return crypto.createHash('sha256').update(content).digest('hex');
+        }
+    }
+    return 'none';
+};
 
 export const captureState = (): SystemState => {
     let pkg: any = {};
@@ -26,6 +39,7 @@ export const captureState = (): SystemState => {
         timestamp: Date.now(),
         nodeVersion: process.version,
         dependencies: pkg.dependencies || {},
+        lockfileHash: getLockfileHash(),
         envKeys: Object.keys(process.env).sort(),
         gitCommit
     };
