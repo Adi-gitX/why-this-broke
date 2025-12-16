@@ -119,14 +119,15 @@ A: **No.** We only hash `package-lock.json` and check `process.env` keys. We nev
 
 ---
 
-### 🧠 Causal Inference Engine (v1.2)
+### 🧠 Causal Inference Engine (v1.4)
 
-We don't just dump a diff. We run a **probabilistic analysis** using 4 specialized detectors:
+We don't just dump a diff. We run a **probabilistic analysis** using 5 specialized detectors:
 
 | Detector | Checks | Confidence |
 | :--- | :--- | :--- |
 | **RuntimeDetector** | Node Version, OS, CPU Architecture. | `HIGH` |
 | **DependencyDetector** | Lockfile hash, Manifest versions, Integrity. | `HIGH` |
+| **ConfigDetector** | Critical configs (`tsconfig`, `webpack`, `Docker`). | `HIGH` |
 | **EnvDetector** | Missing keys (ignores volatile `npm_` vars). | `HIGH` |
 | **GitDetector** | Commit history, Dirty state, Branch drift. | `LOW` |
 
