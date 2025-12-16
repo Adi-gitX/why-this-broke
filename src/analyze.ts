@@ -15,7 +15,20 @@ export const analyzeFailure = (snapshotPath: string = '.why-broke.json'): DiffRe
     }
 
     try {
-        const oldState: SystemState = JSON.parse(fs.readFileSync(snapshotPath, 'utf-8'));
+        const rawState = JSON.parse(fs.readFileSync(snapshotPath, 'utf-8'));
+
+        // simple schema check
+        if (!rawState.runtime || !rawState.runtime.nodeVersion) {
+            return [{
+                type: 'CRITICAL',
+                confidence: 'HIGH',
+                category: 'Breaking Change',
+                message: 'Your system snapshot is from an older version of why-broke.',
+                remedy: 'Run "why-broke record" to update your baseline to v1.2.'
+            }];
+        }
+
+        const oldState: SystemState = rawState;
         const newState = captureState();
 
         const engine = new InferenceEngine();
