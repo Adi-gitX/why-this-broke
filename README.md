@@ -24,23 +24,26 @@ Standard tools show you the **Trace** (where it crashed).
 
 ### 🚀 Usage
 
-**1. Install**
+**The Magic Way (Recommended)**
+Simply wrap your build or start command. `why-broke` will watch it.
+
 ```bash
-npm install -g why-broke
+why-broke "npm run build"
 ```
 
-**2. The "It Works" Moment**
-When your app is working, tell the system to remember this state.
+*   **If it succeeds:** It automatically `records` the new state.
+*   **If it fails:** It automatically `analyzes` and tells you why.
 
+---
+
+### Manual Usage
+
+**1. Record Success**
 ```bash
 why-broke record
 ```
 
-*Tip: Add this to your `postbuild` script!*
-
-**3. The "It Broke" Moment**
-When things crash, ask the system why.
-
+**2. Check Failure**
 ```bash
 why-broke check
 ```

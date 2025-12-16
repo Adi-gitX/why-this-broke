@@ -10,6 +10,9 @@
     "build": "tsc",
     "prepublishOnly": "npm run build"
   },
+  "files": [
+    "dist"
+  ],
   "keywords": [
     "debugging",
     "build-tools",
