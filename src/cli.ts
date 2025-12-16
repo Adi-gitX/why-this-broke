@@ -41,12 +41,11 @@ const run = async () => {
         }
     } else if (command === 'init') {
         process.stdout.write(`
-__        __  \x1b[35m _          \x1b[31m ____            _        
-\\ \\      / / \x1b[35m | |__  _   _\x1b[31m| __ ) _ __ ___ | | _____ 
- \\ \\ /\\ / /  \x1b[35m | '_ \\| | | \x1b[31m|  _ \\| '__/ _ \\| |/ / _ \\
-  \\ V  V /   \x1b[35m | | | | |_| \x1b[31m| |_) | | | (_) |   <  __/
-   \\_/\\_/    \x1b[35m |_| |_|\\__, \x1b[31m|____/|_|  \\___/|_|\\_\\___|
-                      |___/                         
+\x1b[36m   _      __\x1b[35m  __           \x1b[33m    ____            __      
+\x1b[36m  | | /| / /\x1b[35m / /_  __ __  \x1b[33m   / __ )_________  / /_____ 
+\x1b[36m  | |/ |/ / \x1b[35m/ __ \\/ / / /  \x1b[33m  / __  / ___/ __ \\/ //_/ _ \\
+\x1b[36m  |__/|__/ \x1b[35m/_/ /_/\\__, /   \x1b[33m /_____/_/   \\____/_/  \\___/
+\x1b[35m                 /____/                                 
 \x1b[32m  🦅 Stop guessing. Start reasoning.\x1b[0m\n\n`);
 
         const spinner = ora('Initializing automatic drift detection...').start();
