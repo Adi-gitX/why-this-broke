@@ -40,7 +40,15 @@ npm install --save-dev why-broke
 
 ### �🚀 Usage
 
-#### 1. The Easy Way (Auto-Pilot)
+#### 1. The Recommended Way (Set & Forget)
+Run this once in your project root:
+
+```bash
+npx why-broke init
+```
+Now, every time you run `npm install`, we automatically save the "Good State" in the background.
+
+#### 2. The One-Off Way (Auto-Pilot)
 Wrap your build command. We watch it for you.
 
 ```bash
@@ -49,18 +57,10 @@ npx why-broke "npm run build"
 *   **Success?** We save the "Good State" silently.
 *   **Failure?** We wake up and tell you what changed.
 
-#### 2. The Smart Way (Set & Forget)
-Run this once in your project root:
-
-```bash
-npx why-broke init
-```
-Now, every time you run `npm install`, we automatically save the "Good State" in the background.
-
 #### 3. Manual Control
 ```bash
-why-broke record   # "This works!"
-why-broke check    # "Whoops, it's broken."
+npx why-broke record   # "This works!"
+npx why-broke check    # "Whoops, it's broken."
 ```
 
 ---
