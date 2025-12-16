@@ -37,6 +37,19 @@ npx why-broke "npm run build"
 **The "Set and Forget" way**
 Run `npx why-broke init` to automatically track baselines on every `npm install`.
 
+### Manual Usage (For Control Freaks)
+Permitted and encouraged.
+
+**1. Record Success**
+```bash
+why-broke record
+```
+
+**2. Check Failure**
+```bash
+why-broke check
+```
+
 ---
 
 ### 🧐 Scope & Guarantees (v1)
