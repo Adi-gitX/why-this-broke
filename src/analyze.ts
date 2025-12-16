@@ -48,7 +48,7 @@ export const analyzeFailure = (snapshotPath: string = '.why-broke.json'): DiffRe
     const oldDeps = oldState.dependencies;
     const newDeps = newState.dependencies;
 
-    // Check for Version Changes & New Deps (implicit in package.json usually, but good to check)
+    // Dependency Version Changes
     Object.keys(newDeps).forEach(dep => {
         if (oldDeps[dep] && oldDeps[dep] !== newDeps[dep]) {
             results.push({
@@ -61,7 +61,7 @@ export const analyzeFailure = (snapshotPath: string = '.why-broke.json'): DiffRe
         }
     });
 
-    // Check for REMOVED dependencies
+    // Removed Dependencies
     Object.keys(oldDeps).forEach(dep => {
         if (!newDeps[dep]) {
             results.push({

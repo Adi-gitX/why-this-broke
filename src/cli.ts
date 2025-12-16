@@ -12,8 +12,6 @@ const run = async () => {
         const spinner = ora('Snapshotting system state...').start();
         try {
             saveSnapshot();
-            // Artificial delay for UX "magic" feel
-            await new Promise(r => setTimeout(r, 600));
             spinner.succeed(chalk.green('Success state recorded.'));
         } catch (e) {
             spinner.fail(chalk.red('Failed to record state.'));
@@ -21,8 +19,6 @@ const run = async () => {
         }
     } else if (command === 'check') {
         const spinner = ora('Analyzing causality...').start();
-        // Artificial delay to show we are "thinking"
-        await new Promise(r => setTimeout(r, 800));
 
         const issues = analyzeFailure();
         spinner.stop();
@@ -78,7 +74,6 @@ const run = async () => {
         }
 
     } else if (command) {
-        // ... (Auto-Pilot logic remains)
         const userCmd = args.join(' ');
         console.log(chalk.dim(`> ${userCmd}`));
 

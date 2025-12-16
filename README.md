@@ -1,83 +1,76 @@
-# 🕵️‍♀️ why-broke
+# 🦅 why-broke
 
-**Stop guessing. Start reasoning.** A causal debugging tool that compares your broken build to the last time it worked.
+**It worked yesterday. Why not today?**
 
 [![npm version](https://img.shields.io/npm/v/why-broke.svg)](https://www.npmjs.com/package/why-broke)
 
 ---
 
 ### The Problem
-You pull the latest code. You run `npm start`. It crashes.  
-**But it worked yesterday.**
+You pull the code. You run `npm start`. It crashes.
+**You didn't change anything.** So why is it broken?
 
-Standard tools show you the **Trace** (where it crashed).  
-`why-broke` shows you the **Cause** (what changed since then).
-
-*Especially useful when CI fails but it works locally.*
+Standard tools show **Where** it crashed (Stack Trace).
+`why-broke` shows **Why** it crashed (What changed).
 
 ### The Solution
-`why-broke` takes a lightweight snapshot of your "World A" (Working State) and compares it to "World B" (Broken State) to detect:
-* ❌ **Dependency Drift** (Did a minor patch update break you?)
-* ❌ **Environment Gaps** (Did you forget a new `.env` variable?)
-* ❌ **Runtime Shifts** (Did your Node version silently jump?)
+We take a tiny snapshot of your system when it works. When it breaks, we compare the difference.
+
+We instantly spot the invisible things that Git misses:
+* 📦 **Silent Updates**: A dependency upgraded and broke you.
+* 🔐 **Missing Info**: You forgot a new `.env` key.
+* ⚡ **Wrong Tools**: You are running Node 18, but the team switched to 20.
 
 ---
 
 ### 🚀 Usage
 
-**The Magic Way (Recommended)**
-Simply wrap your build command. Auto-Pilot handles the rest.
+#### 1. The Easy Way (Auto-Pilot)
+Just run your command with `npx why-broke`.
 
 ```bash
 npx why-broke "npm run build"
 ```
-*   **Success?** It automatically records the new baseline.
-*   **Failure?** It automatically detects drift and warns you.
+*   **If it works:** We save the "Good State".
+*   **If it fails:** We tell you exactly what changed.
 
-**The "Set and Forget" way**
-Run `npx why-broke init` to automatically track baselines on every `npm install`.
+#### 2. The Smart Way (Set & Forget)
+Run this once in your project:
 
-### Manual Usage (For Control Freaks)
-Permitted and encouraged.
-
-**1. Record Success**
 ```bash
-why-broke record
+npx why-broke init
 ```
+Now, every time you install packages, we automatically save the "Good State". You never have to think about it.
 
-**2. Check Failure**
+#### 3. The Manual Way
+You can always control it yourself:
+
 ```bash
-why-broke check
+why-broke record   # Save "It works!"
+why-broke check    # Ask "What's wrong?"
 ```
 
 ---
 
-### 🧐 Scope & Guarantees (v1)
+### 🧠 Confidence Engine
 
-**What it guarantees:**
-*   ✅ Detects drift in **Dependencies**, **Environment**, and **Node Version**.
-*   ✅ Hashes your **Lockfile** to find silent sub-dependency changes.
-*   ✅ Never guesses silently — all findings are traceable.
+We don't just dump a diff. We rank findings by probability.
 
-**What it does NOT do (yet):**
-*   ❌ Full semantic code analysis (AST parsing).
-*   ❌ Automatic code fixing.
+| Signal | Meaning | Confidence |
+| :--- | :--- | :--- |
+| **Runtime / Lockfile** | Your execution environment changed. | `HIGH` |
+| **Missing Dep** | A package disappeared. | `HIGH` |
+| **Package Update** | `package.json` version bump. | `MEDIUM` |
+| **Code Change** | Git files modified. | `LOW` |
 
 ---
 
-### 🧠 Confidence Model
+### 🛡 Zero-Knowledge
 
-`why-broke` doesn't just guess. It ranks findings by **Confidence**:
-
-*   **HIGH**: Runtime/Lockfile/Env changes. These almost always cause breakages in previously working builds.
-*   **MEDIUM**: `package.json` updates.
-*   **LOW**: Git file changes. We know *files* changed, but we verify drift first.
-
-### 🛡 Privacy & Security
-
-**How World A is captured:**
-We only store **hashes** and **fingerprints** (e.g., checksum of `package-lock.json`, list of env *keys*).
-We **never** store source code or environment values.
+**How we record:**
+We verify your state using **checksums** and **key-names**.
+*   We do NOT read your source code.
+*   We do NOT read your env values.
 
 ### License
 MIT
