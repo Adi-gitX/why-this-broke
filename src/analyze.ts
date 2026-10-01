@@ -3,7 +3,7 @@ import { captureState } from './snapshot';
 import { DiffResult, SystemState } from './internal/types';
 import { InferenceEngine } from './engine';
 
-export const analyzeFailure = (snapshotPath: string = '.why-broke.json'): DiffResult[] => {
+export const analyzeFailure = (snapshotPath: string = '.why-broke.json', cmdContext?: { command: string, cwd: string }): DiffResult[] => {
     if (!fs.existsSync(snapshotPath)) {
         return [{
             type: 'INFO',
@@ -29,7 +29,7 @@ export const analyzeFailure = (snapshotPath: string = '.why-broke.json'): DiffRe
         }
 
         const oldState: SystemState = rawState;
-        const newState = captureState();
+        const newState = captureState(cmdContext);
 
         const engine = new InferenceEngine();
         return engine.run(oldState, newState);

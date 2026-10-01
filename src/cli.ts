@@ -1,6 +1,7 @@
 #!/usr/bin/env node
 import { saveSnapshot } from './snapshot';
 import { analyzeFailure } from './analyze';
+import { explainIssues } from './reporter/explain';
 import chalk from 'chalk';
 import ora from 'ora';
 
@@ -27,16 +28,7 @@ const run = async () => {
             console.log(chalk.green('✔ No environment or dependency drift detected.'));
             console.log(chalk.gray('  This is likely a logic error in your code. Check your recent git diffs.'));
         } else {
-            issues.forEach(issue => {
-                const color = issue.type === 'CRITICAL' ? chalk.red : chalk.yellow;
-                const confidenceBadge = issue.confidence === 'HIGH' ? chalk.bgRed.white.bold(' HIGH ') :
-                    issue.confidence === 'MEDIUM' ? chalk.bgYellow.black(' MED ') :
-                        chalk.bgGray.white(' LOW ');
-
-                console.log(`\n${confidenceBadge} ` + color.bold(`[${issue.category}]`));
-                console.log(chalk.white(`       ${issue.message}`));
-                console.log(chalk.gray(`       └─ Fix: ${issue.remedy}`));
-            });
+            console.log(explainIssues(issues));
             process.exit(1);
         }
     } else if (command === 'init') {
@@ -90,27 +82,31 @@ const run = async () => {
         const { spawn } = require('child_process');
         const child = spawn(userCmd, { shell: true, stdio: 'inherit' });
 
+        child.on('error', (err: Error) => {
+            console.log(chalk.red(`Failed to run command: ${err.message}`));
+            process.exit(1);
+        });
+
         child.on('exit', async (code: number) => {
             console.log(''); // spacer
             if (code === 0) {
                 // Success -> Record
                 const spinner = ora('Command succeeded. Updating causal baseline...').start();
-                saveSnapshot();
-                await new Promise(r => setTimeout(r, 500));
-                spinner.succeed(chalk.green('Baseline updated.'));
+                try {
+                    saveSnapshot('.why-broke.json', { command: userCmd, cwd: process.cwd() });
+                    spinner.succeed(chalk.green('Baseline updated.'));
+                } catch (e) {
+                    spinner.fail(chalk.yellow('Command succeeded, but baseline could not be saved.'));
+                }
                 process.exit(0);
             } else {
                 // Failure -> Check
                 console.log(chalk.bold.red('✖ Command failed. Diagnosing cause...'));
-                const issues = analyzeFailure();
+                const issues = analyzeFailure('.why-broke.json', { command: userCmd, cwd: process.cwd() });
                 if (issues.length === 0) {
                     console.log(chalk.gray('  No obvious environment drift found. Check output above.'));
                 } else {
-                    issues.forEach(issue => {
-                        const color = issue.type === 'CRITICAL' ? chalk.red : chalk.yellow;
-                        console.log(color.bold(`\n[${issue.category}] ${issue.message}`));
-                        console.log(chalk.gray(`  └─ Fix: ${issue.remedy}`));
-                    });
+                    console.log(explainIssues(issues));
                 }
                 process.exit(code || 1);
             }

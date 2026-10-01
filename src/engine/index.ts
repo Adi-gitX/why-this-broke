@@ -4,6 +4,7 @@ import { EnvDetector } from './detectors/EnvDetector';
 import { DependencyDetector } from './detectors/DependencyDetector';
 import { GitDetector } from './detectors/GitDetector';
 import { ConfigDetector } from './detectors/ConfigDetector';
+import { SemanticDependencyDetector } from './detectors/SemanticDependencyDetector';
 
 export class InferenceEngine {
     private detectors: Detector[];
@@ -15,7 +16,8 @@ export class InferenceEngine {
             new EnvDetector(),
             new DependencyDetector(),
             new GitDetector(),
-            new ConfigDetector()
+            new ConfigDetector(),
+            new SemanticDependencyDetector()
         ];
     }
 

@@ -1,7 +1,7 @@
 import fs from 'fs';
 import { execSync } from 'child_process';
 import crypto from 'crypto';
-import { SystemState } from './internal/types';
+import { SystemState, ResolvedDependency } from './internal/types';
 
 const getLockfileInfo = (): { hash: string; type: SystemState['lockfile']['type'] } => {
     if (fs.existsSync('package-lock.json')) {
@@ -70,7 +70,30 @@ const getConfigHashes = (): Record<string, string> => {
     return hashes;
 };
 
-export const captureState = (): SystemState => {
+// Helper to get resolved dependencies using npm list
+// We use npm list --json --depth=0 to get top-level resolved versions
+const getResolvedDependencies = (): Record<string, ResolvedDependency> => {
+    try {
+        const output = execSync('npm list --json --depth=0', { stdio: 'pipe' }).toString();
+        const parsed = JSON.parse(output);
+        const resolved: Record<string, ResolvedDependency> = {};
+
+        if (parsed.dependencies) {
+            for (const [name, info] of Object.entries(parsed.dependencies) as [string, any][]) {
+                resolved[name] = {
+                    version: info.version || 'unknown',
+                    resolved: info.resolved,
+                    type: 'unknown'
+                };
+            }
+        }
+        return resolved;
+    } catch (e) {
+        return {};
+    }
+};
+
+export const captureState = (cmdContext?: { command: string, cwd: string }): SystemState => {
     let pkg: any = {};
     try {
         if (fs.existsSync('package.json')) {
@@ -89,6 +112,7 @@ export const captureState = (): SystemState => {
         package: {
             dependencies: pkg.dependencies || {},
             devDependencies: pkg.devDependencies || {},
+            resolved: getResolvedDependencies(),
             scripts: pkg.scripts || {}
         },
         lockfile: getLockfileInfo(),
@@ -103,11 +127,15 @@ export const captureState = (): SystemState => {
                 .sort()
         },
         git: getGitInfo(),
-        configurations: getConfigHashes()
+        configurations: getConfigHashes(),
+        execution: cmdContext ? {
+            command: cmdContext.command,
+            cwd: cmdContext.cwd
+        } : undefined
     };
 };
 
-export const saveSnapshot = (path: string = '.why-broke.json') => {
-    const state = captureState();
+export const saveSnapshot = (path: string = '.why-broke.json', cmdContext?: { command: string, cwd: string }) => {
+    const state = captureState(cmdContext);
     fs.writeFileSync(path, JSON.stringify(state, null, 2));
 };
