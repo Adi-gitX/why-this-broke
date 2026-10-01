@@ -1,6 +1,6 @@
 {
   "name": "why-broke",
-  "version": "1.4.3",
+  "version": "1.4.4",
   "description": "Causal debugging tool that explains build failures by analyzing dependency and environment drift.",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
