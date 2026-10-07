@@ -2,8 +2,8 @@
 
 **Find out what changed since your build last worked.**
 
+[![CI](https://github.com/Adi-gitX/why-this-broke/actions/workflows/ci.yml/badge.svg)](https://github.com/Adi-gitX/why-this-broke/actions/workflows/ci.yml)
 [![npm version](https://img.shields.io/npm/v/why-broke.svg?color=cb3837)](https://www.npmjs.com/package/why-broke)
-[![npm downloads](https://img.shields.io/npm/dm/why-broke.svg)](https://www.npmjs.com/package/why-broke)
 [![node](https://img.shields.io/node/v/why-broke.svg)](https://nodejs.org)
 [![license](https://img.shields.io/npm/l/why-broke.svg)](./LICENSE)
 
@@ -77,6 +77,26 @@ why-broke check     # when they stop working
 ```
 
 `check` exits 0 when nothing drifted, 1 when it found something, and 2 when there is no baseline to compare against.
+
+For scripts and CI annotations, `why-broke check --json` prints the same findings as JSON:
+
+```json
+{
+  "ok": true,
+  "drift": true,
+  "baseline": { "timestamp": 1759806001234, "command": "npm run build", "node": "v20.11.1" },
+  "findings": [
+    {
+      "type": "CRITICAL",
+      "confidence": "HIGH",
+      "category": "Dependencies",
+      "title": "node-fetch 2.6.12 -> 3.3.2",
+      "message": "node-fetch 3 is published as ES modules only. require(\"node-fetch\") throws ERR_REQUIRE_ESM.",
+      "remedy": "Use await import(\"node-fetch\"), switch to the global fetch on Node 18+, or pin node-fetch@2."
+    }
+  ]
+}
+```
 
 ### Refresh the baseline on every install
 
@@ -189,7 +209,7 @@ npm install
 npm test
 ```
 
-Tests run against the compiled output with Node's built-in test runner. Pull requests that add a breaking-change rule should include the upstream changelog link; pull requests that change a detector should include a test.
+Tests run against the compiled output with Node's built-in test runner, on Linux, macOS and Windows across Node 18, 20 and 22. [CONTRIBUTING.md](./CONTRIBUTING.md) explains how the code is organised and how to add a detector or a breaking-change rule. The quickest useful contribution is a migration rule for a package that bit you; there is an [issue template](https://github.com/Adi-gitX/why-this-broke/issues/new?template=breaking_change_rule.yml) for exactly that.
 
 ## License
 

@@ -27,6 +27,7 @@ Usage
   why-broke <command...>      Run a command; record on success, diagnose on failure
 
 Options
+  --json                      With check: print findings as JSON instead of text
   -h, --help                  Show this help
   -v, --version               Print the version
 
@@ -56,7 +57,7 @@ const record = (command?: string): void => {
     }
 };
 
-const check = (command?: string): number => {
+const check = (command?: string, json = false): number => {
     const baseline = readSnapshot(DEFAULT_SNAPSHOT_PATH);
     if (!baseline.ok) {
         const why = {
@@ -64,17 +65,31 @@ const check = (command?: string): number => {
             corrupt: `${DEFAULT_SNAPSHOT_PATH} is not valid JSON.`,
             legacy: `${DEFAULT_SNAPSHOT_PATH} was written by an older why-broke.`
         }[baseline.reason];
-        console.log(chalk.yellow(why));
-        console.log(chalk.dim('Run "why-broke record" the next time the build works, then "why-broke check" when it fails.'));
+        if (json) {
+            console.log(JSON.stringify({ ok: false, reason: baseline.reason, message: why, findings: [] }, null, 2));
+        } else {
+            console.log(chalk.yellow(why));
+            console.log(chalk.dim('Run "why-broke record" the next time the build works, then "why-broke check" when it fails.'));
+        }
         return 2;
     }
 
-    const spinner = ora('Comparing against baseline').start();
+    const spinner = json ? undefined : ora('Comparing against baseline').start();
     const current = captureState({ command });
     const findings = new InferenceEngine().run(baseline.state, current);
-    spinner.stop();
+    spinner?.stop();
 
-    console.log(explainIssues(findings, { baseline: baseline.state, current }));
+    if (json) {
+        const strip = ({ causalGraph, ...rest }: DiffResult) => rest;
+        console.log(JSON.stringify({
+            ok: true,
+            drift: hasSignal(findings),
+            baseline: { timestamp: baseline.state.timestamp, command: baseline.state.execution?.command, node: baseline.state.runtime.nodeVersion },
+            findings: findings.map(strip)
+        }, null, 2));
+    } else {
+        console.log(explainIssues(findings, { baseline: baseline.state, current }));
+    }
     return hasSignal(findings) ? 1 : 0;
 };
 
@@ -173,7 +188,7 @@ const main = (): void => {
         return;
     }
     if (first === 'record') return record();
-    if (first === 'check') process.exit(check());
+    if (first === 'check') process.exit(check(undefined, args.includes('--json')));
     if (first === 'init') return init();
 
     const commandArgs = first === '--' ? args.slice(1) : args;

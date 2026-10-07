@@ -1,0 +1,15 @@
+name: Feature request
+description: Something why-broke should detect or do
+labels: [enhancement]
+body:
+  - type: textarea
+    id: problem
+    attributes:
+      label: The failure you were debugging
+      description: What broke, and what you had to find by hand that why-broke could have found for you.
+    validations:
+      required: true
+  - type: textarea
+    id: proposal
+    attributes:
+      label: What you would like why-broke to report

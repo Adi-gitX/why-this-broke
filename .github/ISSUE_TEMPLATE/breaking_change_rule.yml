@@ -1,0 +1,30 @@
+name: Add a known breaking migration
+description: Propose a package version boundary that why-broke should explain
+labels: [enhancement, good first issue]
+body:
+  - type: input
+    id: package
+    attributes:
+      label: Package and version boundary
+      placeholder: node-fetch 2 -> 3
+    validations:
+      required: true
+  - type: textarea
+    id: breaks
+    attributes:
+      label: What breaks, and the error a user sees
+      placeholder: require("node-fetch") throws ERR_REQUIRE_ESM because 3.x is ESM-only
+    validations:
+      required: true
+  - type: input
+    id: source
+    attributes:
+      label: Link to the changelog or migration guide
+    validations:
+      required: true
+  - type: textarea
+    id: fix
+    attributes:
+      label: The fix you would tell a colleague
+    validations:
+      required: true

@@ -1,0 +1,48 @@
+name: Release
+
+on:
+  push:
+    tags: ['v*']
+
+permissions:
+  contents: write
+  id-token: write
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    env:
+      NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          registry-url: https://registry.npmjs.org
+          cache: npm
+      - run: npm ci
+      - run: npm test
+      - name: Check that the tag matches package.json
+        run: |
+          PKG="v$(node -p "require('./package.json').version")"
+          test "$PKG" = "$GITHUB_REF_NAME" || { echo "tag $GITHUB_REF_NAME != package version $PKG"; exit 1; }
+      - name: Publish to npm
+        if: env.NPM_TOKEN != ''
+        run: npm publish --provenance --access public
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+      - name: Skip npm publish
+        if: env.NPM_TOKEN == ''
+        run: echo "::warning::NPM_TOKEN secret is not set; skipped npm publish. Publish manually with npm publish."
+
+      - name: Create GitHub release from the changelog
+        run: |
+          node -e "
+            const md = require('fs').readFileSync('CHANGELOG.md','utf8');
+            const v = process.env.GITHUB_REF_NAME.slice(1);
+            const m = md.split(/^## /m).find(s => s.startsWith(v + '\n'));
+            require('fs').writeFileSync('/tmp/notes.md', m ? m.slice(m.indexOf('\n')+1).trim() : 'See CHANGELOG.md');
+          "
+          gh release create "$GITHUB_REF_NAME" --title "$GITHUB_REF_NAME" --notes-file /tmp/notes.md
+        env:
+          GH_TOKEN: ${{ github.token }}

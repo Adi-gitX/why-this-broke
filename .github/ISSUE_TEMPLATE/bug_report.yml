@@ -1,0 +1,31 @@
+name: Bug report
+description: why-broke crashed, missed a change, or reported one that did not happen
+labels: [bug]
+body:
+  - type: input
+    id: version
+    attributes:
+      label: why-broke version
+      placeholder: output of `why-broke --version`
+    validations:
+      required: true
+  - type: input
+    id: env
+    attributes:
+      label: Node version, package manager and OS
+      placeholder: Node 20.11, pnpm 9, macOS 14
+    validations:
+      required: true
+  - type: textarea
+    id: what
+    attributes:
+      label: What happened
+      description: The command you ran and the full output. Paste the relevant part of `.why-broke.json` if the problem is in a comparison; it contains no secrets.
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: What you expected
+    validations:
+      required: true
