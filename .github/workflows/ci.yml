@@ -47,4 +47,7 @@ jobs:
           npx why-broke init
           npx why-broke check
           npx why-broke check --json | node -e "const r=JSON.parse(require('fs').readFileSync(0,'utf8')); if(!Array.isArray(r.findings)) process.exit(1)"
-          npx why-broke "node -e process.exit(1)" ; test $? -eq 1
+          set +e
+          npx why-broke "exit 1"; code=$?
+          set -e
+          test "$code" -eq 1
