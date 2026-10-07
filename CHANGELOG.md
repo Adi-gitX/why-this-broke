@@ -1,5 +1,9 @@
 # Changelog
 
+## Unreleased
+
+- `check` emits GitHub Actions error and warning annotations alongside the text report when `GITHUB_ACTIONS=true`.
+
 ## 1.5.1
 
 ### Added

@@ -2,6 +2,7 @@
 const test = require('node:test');
 const assert = require('node:assert/strict');
 const { explainIssues, formatAge } = require('../dist');
+const { formatGitHubAnnotations } = require('../dist/reporter/explain');
 const { state } = require('./helpers');
 
 const strip = s => s.replace(/\x1b\[[0-9;]*m/g, '');
@@ -41,4 +42,37 @@ test('explainIssues with only INFO findings says the code is the likely culprit'
     const text = strip(explainIssues([{ type: 'INFO', confidence: 'LOW', category: 'Source', message: 'x', remedy: 'y' }]));
     assert.match(text, /probably in the code itself/);
     assert.ok(!text.includes('Likely cause'));
+});
+
+test('formatGitHubAnnotations maps CRITICAL and WARNING findings and skips INFO', () => {
+    const findings = [
+        { type: 'CRITICAL', title: 'Config changed', message: 'Contents differ.', remedy: 'Restore it.' },
+        { type: 'INFO', title: 'File added', message: 'New file.', remedy: 'Expected.' },
+        { type: 'WARNING', title: 'Lockfile changed', message: 'Dependencies moved.', remedy: 'npm ci' }
+    ];
+    assert.equal(formatGitHubAnnotations(findings), [
+        '::error title=Config changed::Contents differ. Fix: Restore it.',
+        '::warning title=Lockfile changed::Dependencies moved. Fix: npm ci'
+    ].join('\n'));
+});
+
+test('formatGitHubAnnotations escapes command data and title properties', () => {
+    const finding = {
+        type: 'CRITICAL',
+        title: '100%, file: config\r\nchanged',
+        message: '50% done\r\n::warning::literal %0A',
+        remedy: 'Reset %\rthen\nretry: now, please.'
+    };
+    assert.equal(formatGitHubAnnotations([finding]),
+        '::error title=100%25%2C file%3A config%0D%0Achanged::50%25 done%0D%0A::warning::literal %250A Fix: Reset %25%0Dthen%0Aretry: now, please.');
+});
+
+test('formatGitHubAnnotations supports findings without a title', () => {
+    assert.equal(formatGitHubAnnotations([{ type: 'WARNING', message: 'Changed.', remedy: 'Retry.' }]),
+        '::warning::Changed. Fix: Retry.');
+});
+
+test('formatGitHubAnnotations emits nothing for no findings or only INFO', () => {
+    assert.equal(formatGitHubAnnotations([]), '');
+    assert.equal(formatGitHubAnnotations([{ type: 'INFO', message: 'Changed.', remedy: 'Expected.' }]), '');
 });

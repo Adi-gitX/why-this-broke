@@ -32,6 +32,25 @@ const formatFinding = (finding: DiffResult, color: chalk.Chalk, bullet: string):
     return lines.join('\n');
 };
 
+const escapeAnnotationData = (text: string): string => text
+    .replace(/%/g, '%25')
+    .replace(/\r/g, '%0D')
+    .replace(/\n/g, '%0A');
+
+/** Renders actionable findings as GitHub Actions workflow commands. */
+export const formatGitHubAnnotations = (findings: DiffResult[]): string => {
+    const out: string[] = [];
+    for (const finding of findings) {
+        if (finding.type === 'INFO') continue;
+        const command = finding.type === 'CRITICAL' ? 'error' : 'warning';
+        const title = finding.title
+            ? ` title=${escapeAnnotationData(finding.title).replace(/:/g, '%3A').replace(/,/g, '%2C')}`
+            : '';
+        out.push(`::${command}${title}::${escapeAnnotationData(`${finding.message} Fix: ${finding.remedy}`)}`);
+    }
+    return out.join('\n');
+};
+
 /** Renders findings as terminal text. Pass a context to print a baseline header. */
 export const explainIssues = (findings: DiffResult[], context: ReportContext = {}): string => {
     const out: string[] = [];

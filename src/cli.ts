@@ -6,7 +6,7 @@ import chalk from 'chalk';
 import ora from 'ora';
 import { saveSnapshot, readSnapshot, captureState, DEFAULT_SNAPSHOT_PATH } from './snapshot';
 import { InferenceEngine } from './engine';
-import { explainIssues } from './reporter/explain';
+import { explainIssues, formatGitHubAnnotations } from './reporter/explain';
 import { DiffResult } from './internal/types';
 
 const VERSION: string = (() => {
@@ -89,6 +89,10 @@ const check = (command?: string, json = false): number => {
         }, null, 2));
     } else {
         console.log(explainIssues(findings, { baseline: baseline.state, current }));
+        if (process.env.GITHUB_ACTIONS === 'true') {
+            const annotations = formatGitHubAnnotations(findings);
+            if (annotations) console.log(annotations);
+        }
     }
     return hasSignal(findings) ? 1 : 0;
 };
