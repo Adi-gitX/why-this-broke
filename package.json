@@ -1,6 +1,6 @@
 {
   "name": "why-broke",
-  "version": "1.5.0",
+  "version": "1.5.1",
   "description": "Explains why a build that worked yesterday fails today by diffing your runtime, dependencies, configs and environment against a known-good baseline.",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",

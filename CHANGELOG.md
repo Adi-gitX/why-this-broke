@@ -1,5 +1,15 @@
 # Changelog
 
+## 1.5.1
+
+### Added
+
+- `check --json` for machine-readable output in scripts and CI.
+
+### Changed
+
+- README documents `--json`, links the contributing guide, and shows the CI status badge.
+
 ## 1.5.0
 
 ### Changed
@@ -21,7 +31,6 @@
 - Known breaking migrations for chalk, ora, nanoid, got, execa, inquirer, eslint, prettier, tailwindcss, webpack, jest, react-router-dom, next and express.
 - Lockfile detection for `npm-shrinkwrap.json` and bun lockfiles, and detection of a package-manager switch.
 - npm major version changes are reported.
-- `check --json` for machine-readable output.
 - `--help`, `--version`, and a test suite (`npm test`).
 
 ### Fixed
