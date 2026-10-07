@@ -43,6 +43,6 @@ jobs:
             const m = md.split(/^## /m).find(s => s.startsWith(v + '\n'));
             require('fs').writeFileSync('/tmp/notes.md', m ? m.slice(m.indexOf('\n')+1).trim() : 'See CHANGELOG.md');
           "
-          gh release create "$GITHUB_REF_NAME" --title "$GITHUB_REF_NAME" --notes-file /tmp/notes.md
+          gh release create "$GITHUB_REF_NAME" --title "$GITHUB_REF_NAME" --notes-file /tmp/notes.md || echo "Release already exists"
         env:
           GH_TOKEN: ${{ github.token }}

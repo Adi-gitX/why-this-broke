@@ -10,6 +10,7 @@
   "scripts": {
     "build": "tsc",
     "test": "npm run build && node --test",
+    "bench": "npm run build && node --test tests/benchmark.js",
     "prepublishOnly": "npm test"
   },
   "files": [
