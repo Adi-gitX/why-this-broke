@@ -7,6 +7,12 @@ updates:
     groups:
       dev-dependencies:
         dependency-type: development
+    ignore:
+      # chalk 5+ and ora 6+ are ESM-only; this package ships CommonJS.
+      - dependency-name: chalk
+        update-types: ["version-update:semver-major"]
+      - dependency-name: ora
+        update-types: ["version-update:semver-major"]
   - package-ecosystem: github-actions
     directory: /
     schedule:
