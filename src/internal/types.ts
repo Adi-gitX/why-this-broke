@@ -2,9 +2,12 @@ export type ConfidenceLevel = 'HIGH' | 'MEDIUM' | 'LOW';
 export type IssueType = 'CRITICAL' | 'WARNING' | 'INFO';
 
 export interface ResolvedDependency {
+    /** Version actually installed in node_modules. */
     version: string;
-    resolved?: string; // The tarball url or git ref
-    type?: 'commonjs' | 'module' | 'unknown'; // Vital for CJS/ESM issues
+    /** Tarball URL or git ref, when known. */
+    resolved?: string;
+    /** Module system declared by the installed package ("type" in its package.json). */
+    type?: 'commonjs' | 'module' | 'unknown';
 }
 
 export interface ExecutionContext {
@@ -12,7 +15,7 @@ export interface ExecutionContext {
     cwd: string;
     nodeEnv?: string;
     exitCode?: number;
-    stderrSnippet?: string; // Capture last N lines of failure
+    stderrSnippet?: string;
 }
 
 export interface SystemState {
@@ -24,34 +27,40 @@ export interface SystemState {
         platform: string;
     };
     package: {
-        dependencies: Record<string, string>; // From package.json
-        devDependencies: Record<string, string>; // From package.json
-        resolved: Record<string, ResolvedDependency>; // Actually installed versions
+        /** Ranges from package.json. */
+        dependencies: Record<string, string>;
+        devDependencies: Record<string, string>;
+        /** Versions actually present in node_modules. */
+        resolved: Record<string, ResolvedDependency>;
         scripts: Record<string, string>;
     };
     lockfile: {
         hash: string;
-        type: 'npm' | 'yarn' | 'pnpm' | 'none';
+        type: 'npm' | 'yarn' | 'pnpm' | 'bun' | 'none';
     };
     environment: {
-        keys: string[]; // Only keys, never values
+        /** Variable names only. Values are never recorded. */
+        keys: string[];
+        /** Names declared in .env.example (or .env.sample / .env.template), if present. */
+        declared?: string[];
     };
     git: {
         commit: string;
         branch: string;
         isDirty: boolean;
     };
-    configurations: Record<string, string>; // filename -> hash
-    execution?: ExecutionContext; // Context of the run (if available)
+    /** Config file name -> sha256 of its contents. */
+    configurations: Record<string, string>;
+    execution?: ExecutionContext;
 }
 
-// -- Causal Reasoning Types --
+// -- Causal annotations attached to dependency findings --
 
 export enum ChangeType {
-    BEHAVIORAL = 'BEHAVIORAL', // e.g. async/sync change
-    CONTRACTUAL = 'CONTRACTUAL', // e.g. signature change (hard to detect without types, but we can infer)
-    BOUNDARY = 'BOUNDARY', // e.g. CJS -> ESM, version major bump
-    CONTEXTUAL = 'CONTEXTUAL', // e.g. Node 14 -> 18, Dev -> Prod
+    BEHAVIORAL = 'BEHAVIORAL',
+    CONTRACTUAL = 'CONTRACTUAL',
+    BOUNDARY = 'BOUNDARY',
+    CONTEXTUAL = 'CONTEXTUAL',
     UNKNOWN = 'UNKNOWN'
 }
 
@@ -59,7 +68,7 @@ export interface CausalNode {
     id: string;
     description: string;
     changeType: ChangeType;
-    confidence: number; // 0-1
+    confidence: number;
     diff?: {
         prev: string;
         curr: string;
@@ -67,26 +76,30 @@ export interface CausalNode {
 }
 
 export interface CausalEdge {
-    from: string; // Node ID
-    to: string;   // Node ID
-    reason: string; // "causes", "triggers", "implies"
+    from: string;
+    to: string;
+    reason: string;
     weight: number;
 }
 
 export interface CausalGraph {
     nodes: CausalNode[];
     edges: CausalEdge[];
-    rootCauseIds: string[]; // The nodes we think started it
-    failureNodeId: string;  // The failure event itself
+    rootCauseIds: string[];
+    failureNodeId: string;
 }
 
 export interface DiffResult {
     type: IssueType;
     confidence: ConfidenceLevel;
     category: string;
+    /** Short one-line headline, e.g. "node-fetch 2.6.12 -> 3.0.0". Optional. */
+    title?: string;
+    /** What changed and why it matters. */
     message: string;
+    /** What to do about it. */
     remedy: string;
-    causalGraph?: CausalGraph; // The proof
+    causalGraph?: CausalGraph;
 }
 
 export interface Detector {

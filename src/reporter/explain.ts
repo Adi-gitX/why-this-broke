@@ -1,80 +1,67 @@
 import chalk from 'chalk';
-import { DiffResult, CausalGraph, ChangeType } from '../internal/types';
+import { DiffResult, SystemState } from '../internal/types';
 
-export const explainIssues = (issues: DiffResult[]): string => {
-    let output = '';
+export interface ReportContext {
+    baseline?: SystemState;
+    current?: SystemState;
+}
 
-    // Filter for causal graphs if available
-    const causalIssues = issues.filter(i => i.causalGraph);
-    const standardIssues = issues.filter(i => !i.causalGraph);
-
-    if (causalIssues.length > 0) {
-        output += chalk.bold.underline('\n🔍 Causal Analysis:\n\n');
-
-        causalIssues.forEach(issue => {
-            // For MVP, we take the first root cause node from the graph
-            const graph = issue.causalGraph!;
-            const rootNode = graph.nodes.find(n => graph.rootCauseIds.includes(n.id));
-
-            if (rootNode) {
-                output += formatStory(rootNode, issue);
-            } else {
-                // Fallback
-                output += formatStandard(issue);
-            }
-        });
-    }
-
-    if (standardIssues.length > 0) {
-        if (causalIssues.length > 0) output += chalk.bold('\nOther potential issues:\n');
-        standardIssues.forEach(issue => {
-            output += formatStandard(issue);
-        });
-    }
-
-    return output;
+/** Human-readable relative time, e.g. "2 hours ago". */
+export const formatAge = (timestamp: number, now: number = Date.now()): string => {
+    const seconds = Math.max(0, Math.round((now - timestamp) / 1000));
+    if (seconds < 60) return 'just now';
+    const minutes = Math.round(seconds / 60);
+    if (minutes < 60) return `${minutes} minute${minutes === 1 ? '' : 's'} ago`;
+    const hours = Math.round(minutes / 60);
+    if (hours < 48) return `${hours} hour${hours === 1 ? '' : 's'} ago`;
+    const days = Math.round(hours / 24);
+    return `${days} day${days === 1 ? '' : 's'} ago`;
 };
 
-const formatStory = (rootNode: any, issue: DiffResult): string => {
-    let text = '';
-    const diff = rootNode.diff;
+const SECTIONS: Array<{ type: DiffResult['type']; one: string; many: string; color: chalk.Chalk; bullet: string }> = [
+    { type: 'CRITICAL', one: 'Likely cause', many: 'Likely causes', color: chalk.red, bullet: '!' },
+    { type: 'WARNING', one: 'Possible cause', many: 'Possible causes', color: chalk.yellow, bullet: '?' },
+    { type: 'INFO', one: 'Also changed', many: 'Also changed', color: chalk.dim, bullet: '-' }
+];
 
-    // Header
-    const color = issue.confidence === 'HIGH' ? chalk.red.bold : chalk.yellow.bold;
-    const subject = rootNode.id.split(':').slice(1).join(':') || rootNode.id;
-    text += `${color('FAILED')} due to ${chalk.bold(subject)}\n`;
-
-    // World A (It worked before)
-    text += chalk.green(`\n  ✅ It worked before because:\n`);
-    if (diff) {
-        text += `     • Version was ${chalk.bold(diff.prev)}\n`;
-        if (rootNode.changeType === ChangeType.BOUNDARY) {
-            text += `     • The ecosystem rules were different (e.g. CJS/ESM)\n`;
-        }
-    } else {
-        text += `     • System state matched known working configuration.\n`;
-    }
-
-    // World B (It broke now)
-    text += chalk.red(`\n  ❌ It broke because:\n`);
-    if (diff) {
-        text += `     • Version is now ${chalk.bold(diff.curr)}\n`;
-    }
-    text += `     • ${issue.message}\n`;
-
-    // Conclusion
-    text += chalk.cyan(`\n  💡 Logic:\n`);
-    text += `     JavaScript did exactly what you asked. Your assumptions changed.\n`;
-
-    // Fix
-    text += chalk.gray(`\n  🛠  Fix Strategy:\n`);
-    text += `     ${issue.remedy}\n\n`;
-
-    return text;
+const formatFinding = (finding: DiffResult, color: chalk.Chalk, bullet: string): string => {
+    const headline = finding.title || finding.message;
+    const lines = [`  ${color.bold(bullet)} ${chalk.bold(headline)}  ${chalk.dim(`[${finding.category}]`)}`];
+    if (finding.title && finding.message) lines.push(`    ${finding.message}`);
+    lines.push(`    ${chalk.cyan('Fix:')} ${finding.remedy}`);
+    return lines.join('\n');
 };
 
-const formatStandard = (issue: DiffResult): string => {
-    const color = issue.type === 'CRITICAL' ? chalk.red : chalk.yellow;
-    return `${color.bold(`[${issue.category}]`)} ${issue.message}\n` +
-        chalk.gray(`  └─ Fix: ${issue.remedy}\n`);
+/** Renders findings as terminal text. Pass a context to print a baseline header. */
+export const explainIssues = (findings: DiffResult[], context: ReportContext = {}): string => {
+    const out: string[] = [];
+
+    if (context.baseline) {
+        const b = context.baseline;
+        const when = formatAge(b.timestamp);
+        const after = b.execution?.command ? ` after ${chalk.bold(b.execution.command)}` : '';
+        out.push(chalk.dim(`Baseline recorded ${when}${after} (Node ${b.runtime.nodeVersion}, ${b.runtime.platform}-${b.runtime.arch}).`));
+        out.push('');
+    }
+
+    if (findings.length === 0) {
+        out.push(chalk.green('No drift found. Runtime, dependencies, configuration and environment match the baseline.'));
+        return out.join('\n');
+    }
+
+    const counts = { CRITICAL: 0, WARNING: 0, INFO: 0 };
+    for (const f of findings) counts[f.type] += 1;
+    for (const section of SECTIONS) {
+        const items = findings.filter(f => f.type === section.type);
+        if (items.length === 0) continue;
+        out.push(section.color.bold(items.length === 1 ? section.one : section.many));
+        for (const item of items) out.push(formatFinding(item, section.color, section.bullet));
+        out.push('');
+    }
+
+    if (counts.CRITICAL + counts.WARNING === 0) {
+        out.push(chalk.dim('Nothing above is a strong signal. The cause is probably in the code itself.'));
+    }
+
+    return out.join('\n').trimEnd();
 };

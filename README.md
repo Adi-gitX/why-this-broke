@@ -1,426 +1,196 @@
-<p align="center">
-  <img src="https://raw.githubusercontent.com/Adi-gitX/why-this-broke/main/.github/logo.png" alt="why-broke" width="120" />
-</p>
+# why-broke
 
-<h1 align="center">🦅 why-broke</h1>
+**Find out what changed since your build last worked.**
 
-<p align="center">
-  <strong>Stop guessing. Start reasoning.</strong><br/>
-  <em>The causal debugger for JavaScript that tells you WHY your build broke, not just where.</em>
-</p>
+[![npm version](https://img.shields.io/npm/v/why-broke.svg?color=cb3837)](https://www.npmjs.com/package/why-broke)
+[![npm downloads](https://img.shields.io/npm/dm/why-broke.svg)](https://www.npmjs.com/package/why-broke)
+[![node](https://img.shields.io/node/v/why-broke.svg)](https://nodejs.org)
+[![license](https://img.shields.io/npm/l/why-broke.svg)](./LICENSE)
 
-<p align="center">
-  <a href="https://www.npmjs.com/package/why-broke"><img src="https://img.shields.io/npm/v/why-broke.svg?style=flat-square&color=blue" alt="npm version"></a>
-  <a href="https://www.npmjs.com/package/why-broke"><img src="https://img.shields.io/npm/dm/why-broke.svg?style=flat-square&color=green" alt="downloads"></a>
-  <a href="https://opensource.org/licenses/MIT"><img src="https://img.shields.io/badge/License-MIT-yellow.svg?style=flat-square" alt="License"></a>
-  <a href="https://github.com/Adi-gitX/why-this-broke"><img src="https://img.shields.io/github/stars/Adi-gitX/why-this-broke?style=flat-square" alt="stars"></a>
-</p>
+You pull, you run the build, it fails. You did not touch anything. The error points at a line of code that has not changed in months.
 
----
+The real cause is almost never on that line. It is a dependency that moved under you, a Node version that differs from your teammate's, an environment variable they added and you do not have, or a config file that changed three commits ago. Stack traces cannot see any of that.
 
-## 💔 The Problem
+`why-broke` records the state of your project while it works, and when it stops working, tells you exactly what is different.
 
-You've been here before:
+```
+$ why-broke npm run build
 
-```bash
-$ git pull origin main
-$ npm start
+> demo-app@1.0.0 build
+TypeError: fetch is not a function
+
+Command failed with exit code 1. Looking for what changed.
+
+Baseline recorded 3 hours ago after npm run build (Node v20.11.1, darwin-arm64).
+
+Likely causes
+  ! 1 declared package not installed  [Dependencies]
+    In package.json but not in node_modules: dayjs.
+    Fix: Run npm ci.
+  ! node-fetch 2.6.12 -> 3.3.2  [Dependencies]
+    node-fetch 3 is published as ES modules only. require("node-fetch") throws ERR_REQUIRE_ESM.
+    Fix: Use await import("node-fetch"), switch to the global fetch on Node 18+, or pin node-fetch@2.
+  ! 1 new variable in .env.example  [Environment]
+    Declared in .env.example since the baseline but not set here: STRIPE_SECRET_KEY.
+    Fix: Copy the new entries from .env.example into your .env and fill in the values.
+
+Possible cause
+  ? Lockfile changed  [Dependencies]
+    The lockfile differs from the baseline, so transitive dependencies may have moved even where package.json did not.
+    Fix: Run npm ci to install exactly what the lockfile says.
+
+Also changed
+  - 5 files changed since 866d465  [Source]
+    .env.example, package-lock.json, package.json, src.js, tsconfig.json
+    Fix: If nothing above explains the failure, the cause is in the code: git diff 866d465 4c20adc --stat.
 ```
 
-💥 **Build fails.**
+## Install
 
-But wait—**you didn't change anything.** Your colleague pushed the code. It works on their machine. The CI was green. So why is it broken on yours?
-
-Traditional debugging tools tell you **where** things crashed:
-```
-Error: Cannot find module 'foo'
-    at /your/code/index.js:42
-```
-
-**But they never tell you WHY.** The invisible forces at play are:
-
-- 🕵️ A transitive dependency silently updated overnight
-- 🔐 Your teammate added a new `.env` variable you don't have
-- ⚡ You're running Node 18, but the team moved to Node 20
-- 📜 Someone changed `tsconfig.json` and it broke everything
-
-**`why-broke` makes these invisible problems visible.**
-
----
-
-## 🎯 Why I Built This
-
-As a developer, I got tired of the existential dread of debugging "phantom" build failures. The code didn't change. Git shows nothing. The error message is useless. But something, somewhere, shifted.
-
-Traditional debugging assumes your bug is in **your code**. But modern JavaScript applications are complex ecosystems with:
-
-- **200+ transitive dependencies** that update silently
-- **Environment variables** scattered across `.env`, CI secrets, and team Notion docs
-- **Toolchain configurations** (`tsconfig`, `webpack`, `vite`, `babel`) that are easy to break
-- **Node.js version drift** across team members and CI
-
-**`why-broke` is the first tool designed specifically for "it worked yesterday" debugging.** It captures a snapshot of your working environment and uses a **causal inference engine** to pinpoint exactly what changed when things break.
-
----
-
-## ✨ Key Features
-
-| Feature | Description |
-|:--------|:------------|
-| **📸 Intelligent Snapshotting** | Captures your runtime, dependencies, configs, and environment in one file |
-| **🧠 Causal Inference Engine** | 6 specialized detectors that don't just diff—they **reason** about breakage |
-| **🔮 Known Breaking Changes DB** | Recognizes common OSS migration issues (e.g., `node-fetch` CJS→ESM) |
-| **🚀 Zero Config** | One command setup, runs silently in background |
-| **📦 Package Manager Agnostic** | Works with npm, yarn, and pnpm |
-| **🤖 CI/CD Native** | Designed for GitHub Actions, GitLab CI, and any pipeline |
-| **🔒 Privacy First** | Only stores keys (never values) and file hashes (never content) |
-
----
-
-## 📦 Installation
-
-**Option A: Global Install (Great for Personal Use)**
-```bash
-npm install -g why-broke
-```
-
-**Option B: Project Dependency (Recommended for Teams)**
-```bash
+```sh
 npm install --save-dev why-broke
-# or
-yarn add -D why-broke
-# or
-pnpm add -D why-broke
 ```
 
----
+Requires Node 18 or newer. Works with npm, yarn, pnpm and bun projects.
 
-## 🚀 Quick Start
+## Usage
 
-### 1. The Set-and-Forget Way (Recommended)
+There are three ways to use it. Pick one.
 
-Run this once in your project:
+### Wrap the command
 
-```bash
-npx why-broke init
+```sh
+why-broke npm run build
+why-broke npm test
+why-broke "npm run lint && npm run build"
 ```
 
-<details>
-<summary><strong>What does <code>init</code> do?</strong></summary>
+If the command succeeds, the current state is saved as the baseline. If it fails, the state is compared against the last baseline and the differences are printed under the command's own output. The exit code is the command's exit code, so this is safe to use inside npm scripts and CI.
 
-- Adds a `postinstall` hook to your `package.json`
-- Every `npm install` now automatically saves a baseline snapshot
-- When builds fail, you always have a "known good" state to compare against
+This is the most precise mode, because the baseline is only ever recorded from a state that is known to work.
 
-</details>
+### Record and check by hand
 
-### 2. The Auto-Pilot Way (Wrap Any Command)
-
-Wrap your build/test command and let `why-broke` watch it:
-
-```bash
-npx why-broke "npm run build"
-# or
-npx why-broke "npm test"
+```sh
+why-broke record    # while things work
+why-broke check     # when they stop working
 ```
 
-**What happens:**
-- ✅ Command succeeds → Baseline silently updated
-- ❌ Command fails → Instant root cause analysis
+`check` exits 0 when nothing drifted, 1 when it found something, and 2 when there is no baseline to compare against.
 
-### 3. The Manual Way
+### Refresh the baseline on every install
 
-```bash
-# When things are working:
-npx why-broke record
-
-# When things break:
-npx why-broke check
+```sh
+why-broke init
 ```
 
----
+This adds `why-broke record` to the `postinstall` script in package.json, adds the baseline file to `.gitignore`, and records a first baseline. From then on every `npm install` refreshes the baseline, so there is always a recent one when something breaks.
 
-## 📸 What It Looks Like
+`init` refuses to run unless `why-broke` is already a dependency of the project. A postinstall hook that calls a missing binary would break `npm install` for everyone who clones the repository.
 
-When your build fails, `why-broke` produces a human-readable root cause analysis:
+Note that an install-time baseline reflects the state right after installing, before you have confirmed the build works. If you want the stronger guarantee, wrap your build command instead.
 
-```
-✖ Command failed. Diagnosing cause...
+## What it compares
 
-🔍 Causal Analysis:
+Each check runs these detectors against the baseline. Findings are grouped as a likely cause, a possible cause, or background information.
 
-FAILED due to dep-change
+| Area | Checked | Reported when |
+|---|---|---|
+| Runtime | Node version, npm version, OS, CPU architecture | Node or npm major changes, platform changes |
+| Installed packages | The version and module type of every declared dependency, read from `node_modules` | A declared package is missing, a package crossed a major version, a package became ESM-only, or a known breaking migration matched |
+| package.json | Dependency ranges | A range was added, changed or removed |
+| Lockfile | Hash and type of `package-lock.json`, `yarn.lock`, `pnpm-lock.yaml` or `bun.lock` | The lockfile changed, or the project switched package manager |
+| Configuration | Hashes of build and tool config files such as `tsconfig.json`, `vite.config.ts`, `next.config.js`, `.eslintrc`, `Dockerfile`, `.nvmrc` | A file changed, was deleted, or appeared |
+| Environment | Names of variables in the shell plus keys in `.env` and `.env.local`, and keys declared in `.env.example` | A variable set at baseline time is not set now, or `.env.example` declares a new key that is not set |
+| Source | Current commit and whether the tree is dirty | Lists the files changed since the baseline commit, as context |
 
-  ✅ It worked before because:
-     • Version was 2.6.12
-     • The ecosystem rules were different (e.g. CJS/ESM)
+Installed versions are read directly from each package's manifest in `node_modules`, not from `npm ls`, so the check does not fail or go blind when the tree has peer-dependency warnings.
 
-  ❌ It broke because:
-     • Version is now 3.0.0
-     • node-fetch: Switched from CommonJS to ESM-only. require() no longer works.
+Variables that differ between terminals and editors (`TERM_*`, `VSCODE_*`, `ITERM_*`, `PWD`, `SHLVL` and similar) are ignored, so opening a different terminal does not look like drift.
 
-  💡 Logic:
-     JavaScript did exactly what you asked. Your assumptions changed.
+### Known breaking migrations
 
-  🛠  Fix Strategy:
-     Use dynamic import() or downgrade to v2.
+When an installed package crosses a version boundary that is known to break existing code, the finding says what broke and how to fix it instead of only reporting the version numbers. The list currently covers:
 
-Other potential issues:
-[Dependency Integrity] Lockfile has changed. Underlying dependencies have drifted.
-  └─ Fix: Run "npm ci" to restore exact versions.
+| Package | Boundary | What breaks |
+|---|---|---|
+| `node-fetch`, `chalk`, `ora`, `nanoid`, `got`, `execa`, `inquirer` | ESM-only majors | `require()` throws `ERR_REQUIRE_ESM` |
+| `uuid` | 7 | Default export and deep imports removed |
+| `axios` | 1 | `AxiosHeaders` and an ESM build that Jest resolves by default |
+| `eslint` | 9 | Flat config is the default, `.eslintrc` is ignored |
+| `prettier` | 3 | `trailingComma` default and async plugin loading |
+| `tailwindcss` | 4 | CSS-based config, new PostCSS plugin, `@tailwind` directives removed |
+| `webpack` | 5 | No automatic Node core polyfills |
+| `jest` | 28 | `jest-environment-jsdom` no longer bundled |
+| `react-router-dom` | 6 | `Switch`, `Redirect`, `useHistory` removed |
+| `next` | 15 | Request APIs and route params became async |
+| `express` | 5 | Route path syntax changed |
 
-[Environment] Missing variables: DATABASE_URL, API_KEY
-  └─ Fix: Check your .env file or export these variables.
-```
+Packages not on this list are still caught by the generic checks: a major bump is reported as a likely cause, and a package whose manifest switches to `"type": "module"` is flagged as an ESM transition regardless of its name. To add a migration, edit [src/engine/knownBreakingChanges.ts](src/engine/knownBreakingChanges.ts) and open a pull request with a link to the package's changelog.
 
----
+## Continuous integration
 
-## 🧠 The Causal Inference Engine
-
-This isn't a simple "diff" tool. `why-broke` uses a **probabilistic causal reasoning engine** with 6 specialized detectors:
-
-| Detector | What It Checks | Confidence |
-|:---------|:---------------|:-----------|
-| **RuntimeDetector** | Node.js version, OS platform, CPU architecture | `HIGH` |
-| **DependencyDetector** | Lockfile hash, package.json versions, removed packages | `HIGH` |
-| **SemanticDependencyDetector** | Actual installed versions, semver boundary crossings, known breaking patterns | `HIGH` |
-| **ConfigDetector** | Critical configs (`tsconfig`, `webpack`, `vite`, `babel`, `Dockerfile`, etc.) | `HIGH` |
-| **EnvDetector** | Missing environment variable keys (not values!) | `HIGH` |
-| **GitDetector** | Commit drift, uncommitted changes, branch context | `LOW` |
-
-### How It Works
-
-```
-┌─────────────────────────────────────────────────────────────────┐
-│                     SNAPSHOTTING                                │
-│  ┌─────────────┐ ┌─────────────┐ ┌─────────────┐               │
-│  │   Runtime   │ │   Package   │ │   Configs   │               │
-│  │  • Node.js  │ │  • deps     │ │  • tsconfig │               │
-│  │  • Platform │ │  • lockfile │ │  • webpack  │               │
-│  │  • Arch     │ │  • resolved │ │  • vite     │               │
-│  └─────────────┘ └─────────────┘ └─────────────┘               │
-│                          │                                      │
-│                          ▼                                      │
-│               .why-broke.json (baseline)                        │
-└─────────────────────────────────────────────────────────────────┘
-                           │
-                           │  Build Fails
-                           ▼
-┌─────────────────────────────────────────────────────────────────┐
-│                   CAUSAL INFERENCE ENGINE                       │
-│   ┌──────────────────────────────────────────────────────────┐ │
-│   │  1. Capture current state                                │ │
-│   │  2. Run 6 specialized detectors                          │ │
-│   │  3. Build causal graph (nodes + edges)                   │ │
-│   │  4. Score by confidence and impact                       │ │
-│   │  5. Generate human-readable diagnosis                    │ │
-│   └──────────────────────────────────────────────────────────┘ │
-└─────────────────────────────────────────────────────────────────┘
-```
-
-### Known Breaking Changes Database
-
-`why-broke` includes a curated database of common breaking changes in popular packages:
-
-| Package | Breaking Pattern | Reason |
-|:--------|:-----------------|:-------|
-| `node-fetch` | 2.x → 3.x | Switched from CommonJS to ESM-only |
-| `uuid` | 3.x → 7.x | Default export removed, requires named imports |
-| `uuid` | 7.x → 8.x | ESM transition |
-| `axios` | 0.x → 1.x | Major API breaking changes |
-
-More packages are added regularly. Contributions welcome!
-
----
-
-## 🤖 CI/CD Integration
-
-### GitHub Actions
+The baseline is a local file and is not committed, so a fresh CI runner starts without one. Persist it between runs with the cache. On GitHub Actions:
 
 ```yaml
-name: Build
-on: [push, pull_request]
+- uses: actions/cache@v4
+  with:
+    path: .why-broke.json
+    key: why-broke-${{ runner.os }}-${{ github.run_id }}
+    restore-keys: why-broke-${{ runner.os }}-
 
-jobs:
-  build:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
-        with:
-          node-version: '20'
-          
-      - run: npm ci
-      
-      # Wrap your build with why-broke
-      - name: Build & Analyze
-        run: npx why-broke "npm run build"
+- run: npm ci
+- run: npx why-broke npm run build
 ```
 
-### GitLab CI
+Each run restores the most recent baseline through the prefix in `restore-keys`, and saves a new one under its own run id when the build passes. A failing run prints the diff against the last passing run directly in the job log.
 
-```yaml
-build:
-  script:
-    - npm ci
-    - npx why-broke "npm run build"
+## The baseline file
+
+`.why-broke.json` is written in the project root. Add it to `.gitignore` (`init` does this for you). It records:
+
+- Node and npm versions, platform and architecture
+- dependency ranges from package.json, and the installed version and module type of each declared package
+- a SHA-256 hash of the lockfile and of each recognised config file
+- the names of environment variables, and the keys declared in `.env.example`
+- the current commit, branch and dirty state
+- the command that was run and the working directory, when recorded through the wrapper
+
+It never contains environment variable values, file contents or source code. The command and working directory are the only free text in the file.
+
+## Programmatic use
+
+Everything the CLI does is available from the package.
+
+```ts
+import { saveSnapshot, analyzeFailure, explainIssues } from 'why-broke';
+
+saveSnapshot('.why-broke.json', { command: 'npm run build' });
+
+const findings = analyzeFailure('.why-broke.json');
+console.log(explainIssues(findings));
 ```
 
-### Why Use It in CI?
+`analyzeFailure` returns an array of findings with `type` (`CRITICAL`, `WARNING`, `INFO`), `confidence`, `category`, `title`, `message` and `remedy`, ordered most likely cause first. The individual detectors and the `InferenceEngine` class are exported if you want to run a subset or add your own.
 
-- **"Works on my machine" debugging**: When CI fails but local works, the snapshot diff shows you the exact environment difference
-- **Baseline tracking**: Every successful build updates the baseline for future comparisons
-- **Faster debugging**: No more manually comparing Node versions, env vars, and dependencies
+## Limitations
 
----
+- One project root per baseline. In a monorepo, run it inside each package.
+- Only top-level dependencies are version-tracked. Transitive changes show up through the lockfile hash, not by name.
+- Environment detection sees the shell, `.env` and `.env.local`. Variables injected later by a framework are not visible.
+- The comparison is between two points in time on one machine. It does not tell you why a build passes on your machine and fails on a colleague's unless you copy their baseline file over.
 
-## 📁 Snapshot Contents
+## Contributing
 
-The `.why-broke.json` file contains:
-
-```json
-{
-  "timestamp": 1704326400000,
-  "runtime": {
-    "nodeVersion": "v20.10.0",
-    "npmVersion": "10.2.3",
-    "arch": "arm64",
-    "platform": "darwin"
-  },
-  "package": {
-    "dependencies": { "axios": "^1.6.0" },
-    "devDependencies": { "typescript": "^5.0.0" },
-    "resolved": { "axios": { "version": "1.6.2" } },
-    "scripts": { "build": "tsc" }
-  },
-  "lockfile": {
-    "hash": "sha256:abc123...",
-    "type": "npm"
-  },
-  "environment": {
-    "keys": ["NODE_ENV", "DATABASE_URL", "API_KEY"]
-  },
-  "git": {
-    "commit": "abc1234...",
-    "branch": "main",
-    "isDirty": false
-  },
-  "configurations": {
-    "tsconfig.json": "sha256:def456...",
-    "webpack.config.js": "sha256:ghi789..."
-  }
-}
-```
-
-**Privacy Note:** We only store environment variable **keys**, never values. Configuration files are stored as **hashes**, never content.
-
----
-
-## ❓ FAQ
-
-<details>
-<summary><strong>Q: Where is the snapshot stored?</strong></summary>
-
-In `.why-broke.json` in your project root.
-</details>
-
-<details>
-<summary><strong>Q: Should I commit .why-broke.json?</strong></summary>
-
-**No.** Add it to your `.gitignore`. This file represents your local machine's working state. Each developer and CI environment will have their own.
-</details>
-
-<details>
-<summary><strong>Q: Does it read my source code?</strong></summary>
-
-**No.** We only:
-- Hash lockfiles and config files
-- Read package.json for dependency versions
-- Check environment variable **keys** (never values)
-
-We never read, store, or transmit your actual source code.
-</details>
-
-<details>
-<summary><strong>Q: Does it work with monorepos?</strong></summary>
-
-Currently, `why-broke` operates at the project root level. Monorepo support with per-package snapshots is on the roadmap.
-</details>
-
-<details>
-<summary><strong>Q: What package managers are supported?</strong></summary>
-
-- ✅ npm
-- ✅ yarn
-- ✅ pnpm
-
-Lockfiles for all three are automatically detected and hashed.
-</details>
-
----
-
-## 🛠 CLI Reference
-
-| Command | Description |
-|:--------|:------------|
-| `why-broke init` | Set up automatic snapshot recording via postinstall hook |
-| `why-broke record` | Manually save the current state as "known good" |
-| `why-broke check` | Compare current state against saved baseline |
-| `why-broke "<command>"` | Run a command with auto-record/check |
-| `why-broke` | Show help |
-
----
-
-## 🗺 Roadmap
-
-- [ ] **Interactive TUI** - Visual diff browser for large projects
-- [ ] **Monorepo support** - Per-package snapshots
-- [ ] **Remote baseline sync** - Team-shared baselines for "works on my machine" debugging
-- [ ] **VS Code Extension** - Inline causal annotations
-- [ ] **Extended OSS database** - More known breaking changes
-
----
-
-## 🤝 Contributing
-
-Contributions are welcome! Here's how to get started:
-
-```bash
-# Clone the repo
+```sh
 git clone https://github.com/Adi-gitX/why-this-broke.git
 cd why-this-broke
-
-# Install dependencies
 npm install
-
-# Build
-npm run build
-
-# Test locally
-node dist/cli.js --help
+npm test
 ```
 
-**Areas to contribute:**
-- 🐛 Bug reports and fixes
-- 📦 Add packages to the known breaking changes database
-- 🧠 New detector implementations
-- 📖 Documentation improvements
+Tests run against the compiled output with Node's built-in test runner. Pull requests that add a breaking-change rule should include the upstream changelog link; pull requests that change a detector should include a test.
 
----
+## License
 
-## 📜 License
-
-[MIT](LICENSE) © [Aditya Kammati](https://github.com/Adi-gitX)
-
----
-
-<p align="center">
-  <strong>Built with frustration, shipped with love.</strong><br/>
-  <em>Because "it worked yesterday" is not a debugging strategy.</em>
-</p>
-
-<p align="center">
-  <a href="https://github.com/Adi-gitX/why-this-broke">⭐ Star on GitHub</a> •
-  <a href="https://www.npmjs.com/package/why-broke">📦 View on npm</a> •
-  <a href="https://github.com/Adi-gitX/why-this-broke/issues">🐛 Report Bug</a>
-</p>
+[MIT](./LICENSE)

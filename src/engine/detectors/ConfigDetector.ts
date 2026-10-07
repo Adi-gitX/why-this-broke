@@ -3,49 +3,47 @@ import { Detector, SystemState, DiffResult } from '../../internal/types';
 export class ConfigDetector implements Detector {
     detect(oldState: SystemState, newState: SystemState): DiffResult[] {
         const results: DiffResult[] = [];
+        const prev = oldState.configurations || {};
+        const curr = newState.configurations || {};
 
-        // Handle migration from non-config snapshots
-        const oldConfigs = oldState.configurations || {};
-        const newConfigs = newState.configurations || {};
-
-        // 1. Changed Configs
-        Object.keys(newConfigs).forEach(file => {
-            if (oldConfigs[file] && oldConfigs[file] !== newConfigs[file]) {
+        for (const file of Object.keys(curr)) {
+            if (prev[file] && prev[file] !== curr[file]) {
                 results.push({
                     type: 'CRITICAL',
                     confidence: 'HIGH',
-                    category: 'Configuration Drift',
-                    message: `Critical config file changed: ${file}`,
-                    remedy: `Review changes in ${file}. Config changes are high-risk.`
+                    category: 'Configuration',
+                    title: `${file} changed`,
+                    message: `The contents of ${file} differ from the baseline.`,
+                    remedy: `See what changed: git log -1 -p -- ${file} (or git diff -- ${file} if it is uncommitted).`
                 });
             }
-        });
+        }
 
-        // 2. Missing Configs
-        Object.keys(oldConfigs).forEach(file => {
-            if (!newConfigs[file]) {
+        for (const file of Object.keys(prev)) {
+            if (!curr[file]) {
                 results.push({
                     type: 'CRITICAL',
                     confidence: 'HIGH',
-                    category: 'Missing Configuration',
-                    message: `Config file deleted: ${file}`,
-                    remedy: `Restore ${file} if this was accidental.`
+                    category: 'Configuration',
+                    title: `${file} deleted`,
+                    message: `${file} existed when the baseline was recorded and is gone now.`,
+                    remedy: `Restore it with git checkout -- ${file} if the deletion was accidental.`
                 });
             }
-        });
+        }
 
-        // 3. New Configs
-        Object.keys(newConfigs).forEach(file => {
-            if (!oldConfigs[file]) {
+        for (const file of Object.keys(curr)) {
+            if (!prev[file]) {
                 results.push({
                     type: 'INFO',
-                    confidence: 'MEDIUM',
-                    category: 'New Configuration',
-                    message: `New config file detected: ${file}`,
-                    remedy: 'Ensure this configuration is correct.'
+                    confidence: 'LOW',
+                    category: 'Configuration',
+                    title: `${file} added`,
+                    message: `${file} did not exist when the baseline was recorded. Tools pick up new config files automatically.`,
+                    remedy: 'Expected if it was added on purpose.'
                 });
             }
-        });
+        }
 
         return results;
     }

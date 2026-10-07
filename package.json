@@ -1,7 +1,7 @@
 {
   "name": "why-broke",
-  "version": "1.4.4",
-  "description": "Causal debugging tool that explains build failures by analyzing dependency and environment drift.",
+  "version": "1.5.0",
+  "description": "Explains why a build that worked yesterday fails today by diffing your runtime, dependencies, configs and environment against a known-good baseline.",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
   "bin": {
@@ -9,23 +9,27 @@
   },
   "scripts": {
     "build": "tsc",
-    "prepublishOnly": "npm run build",
-    "postinstall": "node scripts/postinstall.js"
+    "test": "npm run build && node --test",
+    "prepublishOnly": "npm test"
   },
   "files": [
     "dist",
-    "scripts"
+    "LICENSE",
+    "CHANGELOG.md"
   ],
+  "engines": {
+    "node": ">=18"
+  },
   "keywords": [
     "debugging",
-    "build-tools",
-    "diff",
-    "causality",
-    "drift-detection",
+    "build-failure",
+    "root-cause",
+    "dependency-drift",
+    "environment",
+    "lockfile",
     "regression",
     "ci",
-    "build-failure",
-    "root-cause"
+    "cli"
   ],
   "author": "Aditya Kammati",
   "license": "MIT",

@@ -1,44 +1,54 @@
 import { Detector, SystemState, DiffResult } from '../../internal/types';
 import { execSync } from 'child_process';
 
+const short = (commit: string) => commit.slice(0, 7);
+
 export class GitDetector implements Detector {
     detect(oldState: SystemState, newState: SystemState): DiffResult[] {
         const results: DiffResult[] = [];
+        const prev = oldState.git;
+        const curr = newState.git;
 
-        if (oldState.git.commit !== newState.git.commit) {
+        if (prev.commit !== 'unknown' && curr.commit !== 'unknown' && prev.commit !== curr.commit) {
+            let changedFiles: string[] | undefined;
             try {
-                // Try to get a file count diff
-                const diffCmd = `git diff --name-only ${oldState.git.commit} HEAD`;
-                const output = execSync(diffCmd, { stdio: 'pipe' }).toString();
-                const files = output.trim().split('\n').filter(Boolean);
+                const cwd = newState.execution?.cwd || process.cwd();
+                const output = execSync(`git diff --name-only ${prev.commit} ${curr.commit}`, { cwd, stdio: ['ignore', 'pipe', 'ignore'] }).toString();
+                changedFiles = output.trim().split('\n').filter(Boolean);
+            } catch {
+                changedFiles = undefined;
+            }
 
-                if (files.length > 0) {
-                    results.push({
-                        type: 'INFO',
-                        confidence: 'LOW',
-                        category: 'Source Code',
-                        message: `${files.length} files modified between ${oldState.git.commit.substring(0, 6)} and HEAD.`,
-                        remedy: 'Review local changes or run "why-broke record" if code is robust.'
-                    });
-                }
-            } catch (e) {
+            if (changedFiles === undefined) {
                 results.push({
                     type: 'INFO',
                     confidence: 'LOW',
-                    category: 'Git History',
-                    message: `Commit changed from ${oldState.git.commit.substring(0, 6)} to ${newState.git.commit.substring(0, 6)}`,
-                    remedy: 'Review git log.'
+                    category: 'Source',
+                    title: `HEAD moved from ${short(prev.commit)} to ${short(curr.commit)}`,
+                    message: 'The baseline commit is not in this repository (it may have been rebased away), so the file diff could not be computed.',
+                    remedy: `git log --oneline -20 shows what landed recently.`
+                });
+            } else if (changedFiles.length > 0) {
+                const preview = changedFiles.slice(0, 5).join(', ') + (changedFiles.length > 5 ? ', ...' : '');
+                results.push({
+                    type: 'INFO',
+                    confidence: 'LOW',
+                    category: 'Source',
+                    title: `${changedFiles.length} file${changedFiles.length === 1 ? '' : 's'} changed since ${short(prev.commit)}`,
+                    message: preview,
+                    remedy: `If nothing above explains the failure, the cause is in the code: git diff ${short(prev.commit)} ${short(curr.commit)} --stat.`
                 });
             }
         }
 
-        if (newState.git.isDirty) {
+        if (curr.isDirty) {
             results.push({
-                type: 'WARNING',
+                type: 'INFO',
                 confidence: 'LOW',
-                category: 'Uncommitted Changes',
-                message: 'You have uncommitted changes in your working tree.',
-                remedy: 'Stash or commit changes to isolate the issue.'
+                category: 'Source',
+                title: 'Uncommitted changes in the working tree',
+                message: 'Local edits are present on top of the committed state.',
+                remedy: 'git stash to test whether the committed state alone fails.'
             });
         }
 

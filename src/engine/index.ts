@@ -2,41 +2,52 @@ import { Detector, DiffResult, SystemState } from '../internal/types';
 import { RuntimeDetector } from './detectors/RuntimeDetector';
 import { EnvDetector } from './detectors/EnvDetector';
 import { DependencyDetector } from './detectors/DependencyDetector';
-import { GitDetector } from './detectors/GitDetector';
-import { ConfigDetector } from './detectors/ConfigDetector';
 import { SemanticDependencyDetector } from './detectors/SemanticDependencyDetector';
+import { ConfigDetector } from './detectors/ConfigDetector';
+import { GitDetector } from './detectors/GitDetector';
 
+const TYPE_RANK = { CRITICAL: 0, WARNING: 1, INFO: 2 } as const;
+const CONFIDENCE_RANK = { HIGH: 0, MEDIUM: 1, LOW: 2 } as const;
+
+/** Orders findings so the most likely cause comes first. */
+export const sortFindings = (findings: DiffResult[]): DiffResult[] =>
+    [...findings].sort((a, b) =>
+        TYPE_RANK[a.type] - TYPE_RANK[b.type] ||
+        CONFIDENCE_RANK[a.confidence] - CONFIDENCE_RANK[b.confidence]
+    );
+
+/** Runs every detector against a baseline and the current state. */
 export class InferenceEngine {
     private detectors: Detector[];
 
-    constructor() {
-        // Register all detectors
-        this.detectors = [
+    constructor(detectors?: Detector[]) {
+        this.detectors = detectors || [
             new RuntimeDetector(),
-            new EnvDetector(),
             new DependencyDetector(),
-            new GitDetector(),
+            new SemanticDependencyDetector(),
             new ConfigDetector(),
-            new SemanticDependencyDetector()
+            new EnvDetector(),
+            new GitDetector()
         ];
     }
 
     public run(oldState: SystemState, newState: SystemState): DiffResult[] {
-        let results: DiffResult[] = [];
-
+        const results: DiffResult[] = [];
         for (const detector of this.detectors) {
             try {
-                const detectorResults = detector.detect(oldState, newState);
-                results = results.concat(detectorResults);
-            } catch (e) {
-                console.error('Detector failed:', e);
+                results.push(...detector.detect(oldState, newState));
+            } catch (err) {
+                const name = detector.constructor?.name || 'detector';
+                results.push({
+                    type: 'INFO',
+                    confidence: 'LOW',
+                    category: 'why-broke',
+                    title: `${name} failed`,
+                    message: err instanceof Error ? err.message : String(err),
+                    remedy: 'Please report this at https://github.com/Adi-gitX/why-this-broke/issues.'
+                });
             }
         }
-
-        // Sort by confidence
-        return results.sort((a, b) => {
-            const score = { 'HIGH': 3, 'MEDIUM': 2, 'LOW': 1 };
-            return score[b.confidence] - score[a.confidence];
-        });
+        return sortFindings(results);
     }
 }

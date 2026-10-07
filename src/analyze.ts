@@ -1,46 +1,31 @@
-import fs from 'fs';
-import { captureState } from './snapshot';
-import { DiffResult, SystemState } from './internal/types';
+import { captureState, readSnapshot, DEFAULT_SNAPSHOT_PATH, CaptureOptions } from './snapshot';
+import { DiffResult } from './internal/types';
 import { InferenceEngine } from './engine';
 
-export const analyzeFailure = (snapshotPath: string = '.why-broke.json', cmdContext?: { command: string, cwd: string }): DiffResult[] => {
-    if (!fs.existsSync(snapshotPath)) {
+/**
+ * Compares the current project state against the baseline snapshot and
+ * returns findings, most likely cause first. When no usable baseline exists,
+ * a single INFO finding explains how to create one.
+ */
+export const analyzeFailure = (snapshotPath: string = DEFAULT_SNAPSHOT_PATH, options: CaptureOptions = {}): DiffResult[] => {
+    const baseline = readSnapshot(snapshotPath);
+
+    if (!baseline.ok) {
+        const messages = {
+            missing: 'No baseline found, so there is nothing to compare against.',
+            corrupt: `${snapshotPath} could not be parsed.`,
+            legacy: `${snapshotPath} was written by an older why-broke and is missing fields.`
+        };
         return [{
             type: 'INFO',
             confidence: 'LOW',
-            category: 'First Run',
-            message: 'No previous success state found to compare against.',
-            remedy: 'Run "why-broke record" when your build is working.'
+            category: 'Baseline',
+            title: 'No usable baseline',
+            message: messages[baseline.reason],
+            remedy: 'Run "why-broke record" the next time the build works.'
         }];
     }
 
-    try {
-        const rawState = JSON.parse(fs.readFileSync(snapshotPath, 'utf-8'));
-
-        // simple schema check
-        if (!rawState.runtime || !rawState.runtime.nodeVersion) {
-            return [{
-                type: 'CRITICAL',
-                confidence: 'HIGH',
-                category: 'Breaking Change',
-                message: 'Your system snapshot is from an older version of why-broke.',
-                remedy: 'Run "why-broke record" to update your baseline to v1.2.'
-            }];
-        }
-
-        const oldState: SystemState = rawState;
-        const newState = captureState(cmdContext);
-
-        const engine = new InferenceEngine();
-        return engine.run(oldState, newState);
-
-    } catch (e) {
-        return [{
-            type: 'CRITICAL',
-            confidence: 'LOW',
-            category: 'Corrupt Snapshot',
-            message: 'Could not read the previous state file.',
-            remedy: 'Run "why-broke record" to create a fresh baseline.'
-        }];
-    }
+    const current = captureState(options);
+    return new InferenceEngine().run(baseline.state, current);
 };
